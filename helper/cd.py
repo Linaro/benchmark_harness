@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 
 class cd:
     """Context manager for changing the current working directory"""
