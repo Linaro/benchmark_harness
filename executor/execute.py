@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
  Execute Commands, return out/err, accepts parser plugins
 
@@ -41,8 +43,9 @@ class OutputParser:
         for field, regex in self.fields.items():
             match = re.search(regex, output)
             if match:
+                print(self.sanitise(match.group(1)))
                 data[field] = self.sanitise(match.group(1))
-
+        print(data)
         return data
 
 def run(program, outp=None, errp=None):

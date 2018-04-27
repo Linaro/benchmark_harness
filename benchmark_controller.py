@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import os
 import argparse
@@ -25,7 +26,7 @@ class BenchmarkController(object):
         identity = str(
             self.args.name +
             '_' +
-            (self.args.toolchain_url.rsplit('/', 1)[-1])[:24] +
+            (self.args.toolchain.rsplit('/', 1)[-1])[:24] +
             '_' +
             self.args.compiler_flags.replace(
                 " ",
@@ -72,6 +73,7 @@ class BenchmarkController(object):
 
         if isinstance(perf_results, dict):
             with open(result_dir + '/perf_parser_results.report', 'w') as perf_res_d:
+                print(perf_results)
                 yaml.dump(perf_results, perf_res_d, default_flow_style=False)
         else:
             with open(result_dir + '/perf_parser_results.report', 'w') as perf_res_d:
@@ -110,44 +112,30 @@ class BenchmarkController(object):
 
         unique_root_path = os.path.join(self.args.benchmark_root,
                                         self.binary_name)
-        print(unique_root_path)
         compiler_path = os.path.join(unique_root_path, 'compiler/')
-        print(compiler_path)
         benchmark_path = os.path.join(unique_root_path, 'benchmark/')
         results_path = os.path.join(unique_root_path, 'results/')
 
-        run(['mkdir', unique_root_path])
-        run(['mkdir', compiler_path])
-        run(['mkdir', benchmark_path])
-        run(['mkdir', results_path])
+        os.mkdir(unique_root_path)
+        os.mkdir(compiler_path)
+        os.mkdir(benchmark_path)
+        os.mkdir(results_path)
         print('Made dirs')
-        compiler_factory = CompilerFactory(self.args.toolchain_url,
+
+        compiler_factory = CompilerFactory(self.args.toolchain,
                                            compiler_path)
         try:
             self.benchmark_model = self._validate_model(self.args.name +
                                                         '_model', 'benchmark')
-        except ImportError as err:
-            print(err)
-            self.parser.print_help()
-
-        print('Fetched Benchmark')
-
-        try:
+            print('Fetched Benchmark')
             self.machine_model = self._validate_model(self.args.machine_type +
                                                       '_model', 'machine')
-        except ImportError as err:
-            print(err)
-            self.parser.print_help()
-
-        print('Fetched Machine')
-
-        try:
+            print('Fetched Machine')
             self.compiler_model = compiler_factory.getCompiler()
+            print('Fetched Compiler')
         except ImportError as err:
             print(err)
             self.parser.print_help()
-
-        print('Fetched Compiler')
 
         with cd(benchmark_path):
             for cmd in self.benchmark_model.prepare_build_benchmark(
@@ -169,26 +157,20 @@ class BenchmarkController(object):
 
             for cmd in self.benchmark_model.prepare_run_benchmark(
                     self.args.benchmark_run_deps):
-                if cmd:
-                    run(cmd)
-                else:
-                    print('Nothing to prepare Comrade')
+                run(cmd)
 
             print('Ready for run, Commander')
 
             run_cmd = self.benchmark_model.run_benchmark(self.binary_name,
                                                          self.args.benchmark_options)
-            perf_command = ['/usr/bin/perf', 'stat']
-            perf_command.extend(run_cmd)
 
             print('Benchmark is being ran, Comrade')
 
             perf_parser = LinuxPerf(run_cmd)
             stdout, perf_results = perf_parser.stat()
-        print('The truth is out there')
 
         self._output_logs(stdout, perf_results)
-
+        print('The truth is out there')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run some benchmark.')
@@ -196,8 +178,8 @@ if __name__ == '__main__':
                         help='The name of the benchmark to be run')
     parser.add_argument('machine_type', type=str,
                         help='The type of the machine to run the benchmark on')
-    parser.add_argument('toolchain_url', type=str,
-                        help='The url of the toolchain with which to compile the benchmark')
+    parser.add_argument('toolchain', type=str,
+                        help='The url or local of the toolchain with which to compile the benchmark')
     parser.add_argument('--compiler-flags', type=str, default='',
                         help='The extra compiler flags to use with compiler')
     parser.add_argument('--link-flags', type=str, default='',

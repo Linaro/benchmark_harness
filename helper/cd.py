@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+    This helper class is designed to work well with the 'with' directive of
+    Python. As long as you are in the indented block, your current working dir
+    is changed to one you cd'd to. When you leave the block, you exit. (no pun
+    intended)
+
+    This comes straight from StackOverflow
+"""
 import os
 
 class cd:

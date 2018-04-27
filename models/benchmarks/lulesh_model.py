@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+    This class is an implementation of the BenchmarkModel interface
+    (a python way of doing it, without decorations)
+
+    It implements the actions necessary to prepare for the build, build,
+    prepare for the run and run Lawrence Livermore National Laboratory
+    Livermore Unstructured Lagrangian Explicit Shock Hydrodynamics (LULESH)
+    benchmark.
+
+"""
 
 from models.benchmarks.benchmark_model import BenchmarkModel
 import os
@@ -51,14 +62,3 @@ class BenchmarkModelImplementation(BenchmarkModel):
         binary_path = os.path.join(os.getcwd(), binary_name)
         run_cmd = [binary_path, extra_runflags]
         return run_cmd
-
-
-# if args.name.lower() in BENCHMARK_LIST:
-#    subprocess.run(['mkdir', identity])
-#    with cd(identity):
-#        subprocess.run(['git', 'clone', GIT_URLS[args.name.lower()], args.name.lower()], check=True)
-#        with cd(args.name.lower()):
-#            subprocess.run(make_cmd, check=True)
-#            with open(report_name, 'w') as fd:
-#                subprocess.check_call(['./' + execname, args.benchmark_options],
-#                        stderr=subprocess.STDOUT, stdout=fd)
