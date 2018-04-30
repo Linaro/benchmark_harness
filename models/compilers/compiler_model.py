@@ -11,7 +11,9 @@ class CompilerModel(object):
     def __init__(self):
         self.name = ''
         self.version = ''
-        self.frontend_name = ''
+        self.cxx_name = ''
+        self.cc_name = ''
+        self.fortran_name = ''
         self.default_compiler_flags = ''
         self.default_link_flags = ''
         self.default_dependencies = []
@@ -19,14 +21,13 @@ class CompilerModel(object):
     def check(self, bin_path):
         if os.path.isdir(bin_path):
             for file in os.listdir(bin_path):
-                if file == self.frontend_name:
+                if file == self.cc_name:
                     output = subprocess.check_output([os.path.join(bin_path, file),
                                                       '--version']).decode('utf-8')
-                    if self.frontend_name in output:
+                    if self.cc_name in output:
                         self.version = re.search(
-                            r'' + re.escape(self.frontend_name) + r'.*? (\d*\.\d*\.\d*)', output)
-                        self.frontend_path = os.path.abspath(
-                            os.path.join(bin_path, file))
+                            r'' + re.escape(self.cc_name) + r'.*? (\d*\.\d*\.\d*)', output)
+                        self.compilers_path = os.path.abspath(bin_path)
                         self.sysroot_path = os.path.abspath(
                             os.path.join(bin_path, '../'))
                         return True
@@ -36,16 +37,21 @@ class CompilerModel(object):
         if os.path.isfile(bin_path):
             output = subprocess.check_output([bin_path,
                                               '--version']).decode('utf-8')
-            if self.frontend_name in output:
-                self.frontend_path = bin_path
+            if self.cc_name in output:
+                self.compilers_path = os.path.dirname(bin_path)
                 self.version = re.search(
-                    r'' + re.escape(self.frontend_name) + r'.*? (\d*\.\d*\.\d*)', output)
+                    r'' + re.escape(self.cc_name) + r'.*? (\d*\.\d*\.\d*)', output)
                 return True
             else:
                 return False
 
     def _fetch_dependencies(self):
         pass
+
+    def getDictCompilers(self):
+        return {'cxx': os.path.join(self.compilers_path, self.cxx_name),
+                'cc': os.path.join(self.compilers_path, self.cc_name),
+                'fortran': os.path.join(self.compilers_path, self.fortran_name)}
 
     def validate_flags(self, complete_compiler_flags, complete_link_flags):
         '''Translate flags that need to be translated from GNU notation to

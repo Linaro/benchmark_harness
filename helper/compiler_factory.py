@@ -74,24 +74,6 @@ class CompilerFactory(object):
                                                  extracted_tar, dirname))
         raise ImportError('Frontend not found...')
 
-    def _validate_compiler_model(self, model_name):
-        """Verifies that the file actually contains the model class"""
-        if os.path.isfile(model_name):
-            raw = Path(model_name).read_text()
-            if raw.find('class CompilerModelImplementation') == -1:
-                return False
-            else:
-                return True
-        else:
-            raise ImportError('Bad Path ' + model_name)
-
-    def _load_model(self, model_name, original_path):
-        """Class loader python style"""
-        with cd(original_path):
-            model_name = re.sub("[*.py]", "", model_name)
-            mod = importlib.import_module('models.compilers.' + model_name)
-        return mod.CompilerModelImplementation()
-
     def _getCompilerFromBinaries(self, bin_path):
         """Loads each model class and calls it to check if the frontend is
         theirs"""

@@ -45,12 +45,14 @@ class ModelImplementation(BenchmarkModel):
         prepare_cmds.append(prepare_run_cmd)
         return prepare_cmds
 
-    def build_benchmark(self, compiler, complete_compile_flags, complete_link_flags, binary_name):
+    def build_benchmark(self, compilers_dict, complete_compile_flags, complete_link_flags, binary_name):
         """Builds the benchmark using the base + extra flags"""
         build_cmd = [[]]
         make_cmd = []
         make_cmd.append('make')
-        make_cmd.append('CXX=' + compiler)
+        make_cmd.append('CXX=' + compilers_dict['cxx'])
+        make_cmd.append('CC=' + compilers_dict['cc'])
+        make_cmd.append('FC=' + compilers_dict['fortran'])
         make_cmd.append('CXXFLAGS=' + complete_compile_flags)
         make_cmd.append('LDFLAGS=' + complete_link_flags)
         make_cmd.append('LULESH_EXEC="' + binary_name + '"')

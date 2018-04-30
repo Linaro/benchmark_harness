@@ -29,6 +29,7 @@ from executor.linux_perf import *
 
 class BenchmarkController(object):
     """Point of entry of the benchmark harness application"""
+
     def __init__(self, argparse_parser, argparse_args):
         self.parser = argparse_parser
         self.args = argparse_args
@@ -133,16 +134,16 @@ class BenchmarkController(object):
             # As long as we are in the with cd block, current working dir is changed
             for cmd in self.benchmark_model.prepare_build_benchmark(
                     self.args.benchmark_build_deps):
-                #There might be multiple preparing commands
+                # There might be multiple preparing commands
                 if cmd != []:
-                    #As we initialize with [[]] there is at least one empty array
+                    # As we initialize with [[]] there is at least one empty array
                     run(cmd)
         self.logger.info('Prepared for build')
 
         complete_build_flags, complete_link_flags = self._build_complete_flags()
 
         with cd(os.path.join(benchmark_path, self.benchmark_model.name)):
-            for cmd in self.benchmark_model.build_benchmark(self.compiler_model.frontend_path,
+            for cmd in self.benchmark_model.build_benchmark(self.compiler_model.getDictCompilers(),
                                                             complete_build_flags,
                                                             complete_link_flags,
                                                             self.binary_name):
@@ -155,7 +156,6 @@ class BenchmarkController(object):
             if stderr != '':
                 self.logger.error(stderr)
 
-
             self.logger.info('Benchmark built')
 
             for cmd in self.benchmark_model.prepare_run_benchmark(
@@ -167,7 +167,6 @@ class BenchmarkController(object):
 
             if stderr != '':
                 self.logger.error(stderr)
-
 
             self.logger.info('Ready for run')
 
@@ -206,7 +205,7 @@ if __name__ == '__main__':
                         help='The benchmark root directory where things will be \
                         extracted and created')
     parser.add_argument('-v', '--verbose', action='count', default=0,
-                        help= 'The verbosity of logging output')
+                        help='The verbosity of logging output')
     args = parser.parse_args()
 
     controller = BenchmarkController(parser, args)
