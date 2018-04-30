@@ -10,6 +10,7 @@ import yaml
 from pathlib import Path
 from helper.cd import cd
 from helper.compiler_factory import CompilerFactory
+from helper.model_loader import ModelLoader
 from models.compilers.compiler_model import CompilerModel
 from models.benchmarks.benchmark_model import BenchmarkModel
 from models.machines.machine_model import MachineModel
@@ -21,6 +22,7 @@ class BenchmarkController(object):
     def __init__(self, argparse_parser, argparse_args):
         self.parser = argparse_parser
         self.args = argparse_args
+        self.root_path = os.getcwd()
 
     def _make_unique_name(self):
         identity = str(
@@ -125,11 +127,11 @@ class BenchmarkController(object):
         compiler_factory = CompilerFactory(self.args.toolchain,
                                            compiler_path)
         try:
-            self.benchmark_model = self._validate_model(self.args.name +
-                                                        '_model', 'benchmark')
+            self.benchmark_model = ModelLoader(
+                self.args.name + '_model.py', 'benchmark', self.root_path).load()
             print('Fetched Benchmark')
-            self.machine_model = self._validate_model(self.args.machine_type +
-                                                      '_model', 'machine')
+            self.machine_model = ModelLoader(
+                self.args.machine_type + '_model.py', 'machine', self.root_path).load()
             print('Fetched Machine')
             self.compiler_model = compiler_factory.getCompiler()
             print('Fetched Compiler')
@@ -140,7 +142,8 @@ class BenchmarkController(object):
         with cd(benchmark_path):
             for cmd in self.benchmark_model.prepare_build_benchmark(
                     self.args.benchmark_build_deps):
-                run(cmd)
+                if cmd != []:
+                    run(cmd)
         print('Prepared for build')
 
         complete_build_flags, complete_link_flags = self._build_complete_flags()
@@ -150,14 +153,16 @@ class BenchmarkController(object):
                                                             complete_build_flags,
                                                             complete_link_flags,
                                                             self.binary_name):
-                # Might be useful having a build parser here
-                stdout, stderr = run(cmd)
+                if cmd != []:
+                    # Might be useful having a build parser here
+                    stdout, stderr = run(cmd)
 
             print('Benchmark built !!!')
 
             for cmd in self.benchmark_model.prepare_run_benchmark(
                     self.args.benchmark_run_deps):
-                run(cmd)
+                if cmd != []:
+                    run(cmd)
 
             print('Ready for run, Commander')
 
@@ -171,6 +176,7 @@ class BenchmarkController(object):
 
         self._output_logs(stdout, perf_results)
         print('The truth is out there')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run some benchmark.')

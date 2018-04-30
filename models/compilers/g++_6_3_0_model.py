@@ -3,7 +3,7 @@
 
 from models.compilers.compiler_model import CompilerModel
 
-class CompilerModelImplementation(CompilerModel):
+class ModelImplementation(CompilerModel):
     def __init__(self):
         super().__init__()
         self.name='g++'

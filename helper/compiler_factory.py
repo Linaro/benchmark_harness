@@ -18,6 +18,7 @@ import importlib
 from urllib.request import urlretrieve
 from pathlib import Path
 from helper.cd import cd
+from helper.model_loader import ModelLoader
 from shutil import which
 
 
@@ -98,11 +99,11 @@ class CompilerFactory(object):
         list_compiler_modules = os.listdir('./models/compilers/')
         for model in list_compiler_modules:
             if model.find('_model') != -1:
-                if self._validate_compiler_model(os.path.join(os.getcwd(),
-                                                              'models/compilers/'
-                                                              + model)):
-                    loaded_model = self._load_model(model, original_path)
-                    if loaded_model.check(bin_path):
-                        return loaded_model
+                try:
+                    loaded_model = ModelLoader(model, 'compiler', original_path).load()
+                except ImportError as err:
+                    pass
+                if loaded_model.check(bin_path):
+                    return loaded_model
         raise ImportError('No corresponding module found for toolchain @ ' +
                           self.toolchain_url)
