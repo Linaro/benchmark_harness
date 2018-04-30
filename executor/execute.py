@@ -28,6 +28,7 @@ class OutputParser:
         """Sanitise using cleanup rules"""
         for find, repl in self.filters.items():
             string = string.replace(find, repl)
+        return string
 
     def parse(self, output):
         """Parses the raw output, returns dictionary"""
