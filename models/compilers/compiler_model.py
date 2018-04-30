@@ -3,6 +3,7 @@
 
 import subprocess
 import os
+import re
 
 
 class CompilerModel(object):
@@ -20,8 +21,10 @@ class CompilerModel(object):
             for file in os.listdir(bin_path):
                 if file == self.frontend_name:
                     output = subprocess.check_output([os.path.join(bin_path, file),
-                                                      '--version'])
-                    if output.decode('utf-8').find(self.version) != -1:
+                                                      '--version']).decode('utf-8')
+                    if self.frontend_name in output:
+                        self.version = re.search(
+                            r'' + re.escape(self.frontend_name) + r'.*? (\d*\.\d*\.\d*)', output)
                         self.frontend_path = os.path.abspath(
                             os.path.join(bin_path, file))
                         self.sysroot_path = os.path.abspath(
@@ -31,9 +34,12 @@ class CompilerModel(object):
                         return False
             return False
         if os.path.isfile(bin_path):
-            output = subprocess.check_output([bin_path, '--version'])
-            if output.decode('utf-8').find(self.version) != -1:
+            output = subprocess.check_output([bin_path,
+                                              '--version']).decode('utf-8')
+            if self.frontend_name in output:
                 self.frontend_path = bin_path
+                self.version = re.search(
+                    r'' + re.escape(self.frontend_name) + r'.*? (\d*\.\d*\.\d*)', output)
                 return True
             else:
                 return False

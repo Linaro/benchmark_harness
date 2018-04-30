@@ -6,8 +6,8 @@ from models.compilers.compiler_model import CompilerModel
 class ModelImplementation(CompilerModel):
     def __init__(self):
         super().__init__()
-        self.name='gcc'
-        self.version='7.3.0'
-        self.frontend_name='g++'
+        self.name='llvm'
+        self.version=''
+        self.frontend_name='clang++'
         self.default_compiler_flags='-O3 -ffast-math -ffp-contract=on'
         self.default_dependencies=[]
