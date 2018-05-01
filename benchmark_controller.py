@@ -55,7 +55,7 @@ class BenchmarkController(object):
                 " ",
                 ""))
         self.binary_name = re.sub("[^a-zA-Z0-9_]+", "", identity).lower()
-        self.report_name = identity + '.report'
+        self.report_name = identity
 
     def _build_complete_flags(self):
         if self.compiler_model is not None and self.benchmark_model is not None \
@@ -89,11 +89,10 @@ class BenchmarkController(object):
             stdout_d.write(stdout)
 
         if isinstance(perf_results, dict):
-            with open(result_dir + '/' + self.report_name + 'perf_parser_results.report', 'w') as perf_res_d:
-                self.logger.info(perf_results)
+            with open(result_dir + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
                 yaml.dump(perf_results, perf_res_d, default_flow_style=False)
         else:
-            with open(result_dir + '/' + self.report_name + 'perf_parser_results.report', 'w') as perf_res_d:
+            with open(result_dir + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
                 perf_res_d.write(perf_results)
 
     def main(self):
@@ -136,6 +135,7 @@ class BenchmarkController(object):
                     self.args.benchmark_build_deps):
                 # There might be multiple preparing commands
                 if cmd != []:
+                    self.logger.debug('build deps command : ' + str(cmd))
                     # As we initialize with [[]] there is at least one empty array
                     run(cmd)
         self.logger.info('Prepared for build')
@@ -148,10 +148,10 @@ class BenchmarkController(object):
                                                             complete_link_flags,
                                                             self.binary_name):
                 if cmd != []:
+                    self.logger.debug('build command : ' + str(cmd))
                     # TODO : Might be useful having a build parser here
                     stdout, stderr = run(cmd)
-
-            self.logger.info(stdout)
+                    self.logger.info(stdout)
 
             if stderr != '':
                 self.logger.error(stderr)
@@ -161,9 +161,9 @@ class BenchmarkController(object):
             for cmd in self.benchmark_model.prepare_run_benchmark(
                     self.args.benchmark_run_deps):
                 if cmd != []:
+                    self.logger.debug('run deps command : ' + str(cmd))
                     stdout, stderr = run(cmd)
-
-            self.logger.info(stdout)
+                    self.logger.info(stdout)
 
             if stderr != '':
                 self.logger.error(stderr)
@@ -173,11 +173,15 @@ class BenchmarkController(object):
             run_cmd = self.benchmark_model.run_benchmark(self.binary_name,
                                                          self.args.benchmark_options)
 
+            self.logger.info('run command : ' + str(run_cmd))
+
             self.logger.info('Benchmark is being ran')
 
             perf_parser = LinuxPerf(run_cmd)
             stdout, perf_results = perf_parser.stat()
 
+        self.logger.debug(stdout)
+        self.logger.debug(perf_results)
         self._output_logs(stdout, perf_results)
         self.logger.info('The truth is out there')
 
