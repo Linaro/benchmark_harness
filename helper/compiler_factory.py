@@ -78,7 +78,8 @@ class CompilerFactory(object):
         """Loads each model class and calls it to check if the frontend is
         theirs"""
         original_path = os.getcwd()
-        list_compiler_modules = os.listdir('./models/compilers/')
+        list_compiler_modules = [f for f in os.listdir('./models/compilers/')
+                                 if re.match(r'.*\.py*', f)]
         for model in list_compiler_modules:
             if model.find('_model') != -1:
                 try:
