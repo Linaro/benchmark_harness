@@ -32,3 +32,7 @@ class BenchmarkModel(object):
     def run_benchmark(self, extra_runflags):
         """Runs the benchmarks using the base + extra flags"""
         pass
+
+    def get_plugin(self):
+        """Returns the plugin to parse the results"""
+        pass

@@ -78,15 +78,19 @@ class BenchmarkController(object):
 
     def _output_logs(self, stdout, perf_results):
         result_dir = self.args.benchmark_root + self.binary_name + '/results'
-        if stdout and not isinstance(stdout, str):
-            raise TypeError('stdout should be a string of bytes')
+        if stdout and not isinstance(stdout, str) and not isinstance(stdout, dict):
+            raise TypeError('stdout should be a string of bytes or a dictionary')
         if perf_results and not isinstance(perf_results, dict):
             raise TypeError('perf_results should be a dictionary')
         if not os.path.isdir(result_dir):
             raise TypeError('%s should be a directory' % result_dir)
 
-        with open(result_dir + '/' + self.report_name + '_stdout.report', 'w') as stdout_d:
-            stdout_d.write(stdout)
+        if isinstance(stdout, dict):
+            with open(result_dir + '/' + self.report_name + '_stdout_parser_results.report', 'w') as stdout_d:
+                yaml.dump(stdout, stdout_d, default_flow_style=False)
+        else:
+            with open(result_dir + '/' + self.report_name + '_stdout.report', 'w') as stdout_d:
+                stdout_d.write(stdout)
 
         if isinstance(perf_results, dict):
             with open(result_dir + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
@@ -177,7 +181,7 @@ class BenchmarkController(object):
 
             self.logger.info('Benchmark is being ran')
 
-            perf_parser = LinuxPerf(run_cmd)
+            perf_parser = LinuxPerf(run_cmd, self.benchmark_model.get_plugin())
             stdout, perf_results = perf_parser.stat()
 
         self.logger.debug(stdout)
