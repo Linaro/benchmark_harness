@@ -62,5 +62,8 @@ class ModelImplementation(BenchmarkModel):
     def run_benchmark(self, binary_name, extra_runflags):
         """Runs the benchmarks using the base + extra flags"""
         binary_path = os.path.join(os.getcwd(), binary_name)
-        run_cmd = [binary_path, extra_runflags]
+        if extra_runflags is None or extra_runflags = '':
+            run_cmd = [binary_path]
+        else:
+            run_cmd = [binary_path, extra_runflags]
         return run_cmd
