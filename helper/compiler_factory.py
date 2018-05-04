@@ -84,9 +84,9 @@ class CompilerFactory(object):
             if model.find('_model') != -1:
                 try:
                     loaded_model = ModelLoader(model, 'compiler', original_path).load()
+                    if loaded_model.check(bin_path):
+                        return loaded_model
                 except ImportError as err:
                     pass
-                if loaded_model.check(bin_path):
-                    return loaded_model
         raise ImportError('No corresponding module found for toolchain @ ' +
                           self.toolchain_url)
