@@ -141,7 +141,11 @@ class BenchmarkController(object):
                 if cmd != []:
                     self.logger.debug('build deps command : ' + str(cmd))
                     # As we initialize with [[]] there is at least one empty array
-                    run(cmd)
+                    stdout, stderr = run(cmd)
+                    self.logger.info(stdout)
+
+            if stderr != '':
+                self.logger.error(stderr)
         self.logger.info('Prepared for build')
 
         complete_build_flags, complete_link_flags = self._build_complete_flags()
@@ -150,7 +154,8 @@ class BenchmarkController(object):
             for cmd in self.benchmark_model.build_benchmark(self.compiler_model.getDictCompilers(),
                                                             complete_build_flags,
                                                             complete_link_flags,
-                                                            self.binary_name):
+                                                            self.binary_name,
+                                                            self.args.benchmark_build_vars):
                 if cmd != []:
                     self.logger.debug('build command : ' + str(cmd))
                     # TODO : Might be useful having a build parser here
@@ -203,6 +208,8 @@ if __name__ == '__main__':
                         help='The extra compiler flags to use with compiler')
     parser.add_argument('--link-flags', type=str, default='',
                         help='The extra link flags to use with the benchmark building')
+    parser.add_argument('--benchmark-build-vars', type=str, default='',
+                        help='The extra values the benchmark build needs (e.g. MODEL for Himeno')
     parser.add_argument('--benchmark-options', type=str, default='',
                         help='The benchmark options to use with the benchmark')
     parser.add_argument('--benchmark-build-deps', type=str, default='',
