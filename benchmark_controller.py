@@ -16,10 +16,11 @@ import re
 import importlib
 import yaml
 import logging
+import coloredlogs
 from pathlib import Path
-from helper.cd import cd
 from helper.compiler_factory import CompilerFactory
 from helper.model_loader import ModelLoader
+from helper.benchmark_logger import BenchmarkLogger
 from models.compilers.compiler_model import CompilerModel
 from models.benchmarks.benchmark_model import BenchmarkModel
 from models.machines.machine_model import MachineModel
@@ -34,15 +35,8 @@ class BenchmarkController(object):
         self.parser = argparse_parser
         self.args = argparse_args
         self.root_path = os.getcwd()
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(max(30 - self.args.verbose*10, 0))
-        self.logger.addHandler(logging.StreamHandler())
-
-    def _print_error(self, err, print_help=False):
-        self.logger.info(err)
-        if print_help:
-            print('\n\n')
-            self.parser.print_help()
+        self.logger = BenchmarkLogger(logging.getLogger(__name__), self.parser,
+                                      self.args.verbose)
 
 
     def _make_unique_name(self):
@@ -140,7 +134,7 @@ class BenchmarkController(object):
             self.compiler_model = compiler_factory.getCompiler()
             self.logger.info('Fetched Compiler')
         except ImportError as err:
-            self._print_error(err, True)
+            self.logger.error(err, True)
 
         self._build_complete_flags()
 
@@ -169,7 +163,7 @@ class BenchmarkController(object):
                 self.logger.info(stdout)
 
                 if stderr != '' and perf == False:
-                    self._print_error(stderr)
+                    self.logger.error(stderr)
 
                 self.logger.debug('Command ran')
 
@@ -184,21 +178,21 @@ class BenchmarkController(object):
 
         self._load_models()
 
-        #self._prepare_build()
+        #prepare_build
         self._run_all(self.benchmark_model.prepare_build_benchmark(self.args.benchmark_build_deps))
 
-        #self._build()
+        #build
         self._run_all(self.benchmark_model.build_benchmark(self.compiler_model.getDictCompilers(),
                                                               self.complete_build_flags,
                                                               self.complete_link_flags,
                                                               self.binary_name,
                                                               self.args.benchmark_build_vars))
-        #self._post_build()
+        #post_build
 
-        #self._pre_run()
+        #pre_run
         self._run_all(self.benchmark_model.prepare_run_benchmark(self.args.benchmark_run_deps))
 
-        #self._run()
+        #run
         stdout, perf_result = self._run_all(self.benchmark_model.run_benchmark(self.binary_name,
                                                                                self.args.benchmark_options), perf=True)
 
