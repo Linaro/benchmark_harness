@@ -38,6 +38,13 @@ class BenchmarkController(object):
         self.logger.setLevel(max(30 - self.args.verbose*10, 0))
         self.logger.addHandler(logging.StreamHandler())
 
+    def _print_error(self, err, print_help=False):
+        self.logger.info(err)
+        if print_help:
+            print('\n\n')
+            self.parser.print_help()
+
+
     def _make_unique_name(self):
         """Unique name for the binary and results files"""
         identity = str(
@@ -57,11 +64,11 @@ class BenchmarkController(object):
         self.binary_name = re.sub("[^a-zA-Z0-9_]+", "", identity).lower()
         self.report_name = identity
 
-    def _build_complete_flags(self):
+    def _build_complete_flags(self, mode='DEFAULT'):
         if self.compiler_model is not None and self.benchmark_model is not None \
                 and self.machine_model is not None:
             complete_build_flags, complete_link_flags = self.compiler_model.main(
-                'DEFAULT')
+                mode)
             m_complete_build_flags, m_complete_link_flags = self.machine_model.main()
             b_complete_build_flags, b_complete_link_flags = self.benchmark_model.fetch_flags()
 
@@ -74,54 +81,58 @@ class BenchmarkController(object):
             complete_build_flags, complete_link_flags = self.compiler_model.validate_flags(
                 complete_build_flags, complete_link_flags)
 
-            return complete_build_flags, complete_link_flags
+            self.complete_build_flags = complete_build_flags
+            self.complete_link_flags = complete_link_flags
 
     def _output_logs(self, stdout, perf_results):
-        result_dir = self.args.benchmark_root + self.binary_name + '/results'
         if stdout and not isinstance(stdout, str) and not isinstance(stdout, dict):
             raise TypeError('stdout should be a string of bytes or a dictionary')
         if perf_results and not isinstance(perf_results, dict):
             raise TypeError('perf_results should be a dictionary')
-        if not os.path.isdir(result_dir):
-            raise TypeError('%s should be a directory' % result_dir)
+        if not os.path.isdir(self.results_path):
+            raise TypeError('%s should be a directory' % self.results_path)
 
         if isinstance(stdout, dict):
-            with open(result_dir + '/' + self.report_name + '_stdout_parser_results.report', 'w') as stdout_d:
+            with open(self.results_path + '/' + self.report_name + '_stdout_parser_results.report', 'w') as stdout_d:
                 yaml.dump(stdout, stdout_d, default_flow_style=False)
         else:
-            with open(result_dir + '/' + self.report_name + '_stdout.report', 'w') as stdout_d:
+            with open(self.results_path + '/' + self.report_name + '_stdout.report', 'w') as stdout_d:
                 stdout_d.write(stdout)
 
         if isinstance(perf_results, dict):
-            with open(result_dir + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
+            with open(self.results_path + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
                 yaml.dump(perf_results, perf_res_d, default_flow_style=False)
         else:
-            with open(result_dir + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
+            with open(self.results_path + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
                 perf_res_d.write(perf_results)
 
-    def main(self):
-        """This is where all the logic plays, as you would expect from a
-        main function"""
-
+    def _make_dirs(self):
+        """This function creates the directory at the supplied benchmark root
+        where it will put the benchmark code and binaries, compiler binaries
+        and results"""
         self._make_unique_name()
 
-        unique_root_path = os.path.join(self.args.benchmark_root,
+        self.unique_root_path = os.path.join(self.args.benchmark_root,
                                         self.binary_name)
-        compiler_path = os.path.join(unique_root_path, 'compiler/')
-        benchmark_path = os.path.join(unique_root_path, 'benchmark/')
-        results_path = os.path.join(unique_root_path, 'results/')
+        self.compiler_path = os.path.join(self.unique_root_path, 'compiler/')
+        self.benchmark_path = os.path.join(self.unique_root_path, 'benchmark/')
+        self.results_path = os.path.join(self.unique_root_path, 'results/')
 
-        os.mkdir(unique_root_path)
-        os.mkdir(compiler_path)
-        os.mkdir(benchmark_path)
-        os.mkdir(results_path)
+        os.mkdir(self.unique_root_path)
+        os.mkdir(self.compiler_path)
+        os.mkdir(self.benchmark_path)
+        os.mkdir(self.results_path)
         self.logger.info('Made dirs')
 
+    def _load_models(self):
+        """This function fetches the appropriate models depending on the
+        supplied options """
         compiler_factory = CompilerFactory(self.args.toolchain,
-                                           compiler_path)
+                                           self.compiler_path)
         try:
             self.benchmark_model = ModelLoader(
                 self.args.name + '_model.py', 'benchmark', self.root_path).load()
+            self.benchmark_model.set_path(os.path.abspath(self.benchmark_path))
             self.logger.info('Fetched Benchmark')
             self.machine_model = ModelLoader(
                 self.args.machine_type + '_model.py', 'machine', self.root_path).load()
@@ -129,70 +140,71 @@ class BenchmarkController(object):
             self.compiler_model = compiler_factory.getCompiler()
             self.logger.info('Fetched Compiler')
         except ImportError as err:
-            self.logger.info(err)
-            print('\n\n')
-            self.parser.print_help()
+            self._print_error(err, True)
 
-        with cd(benchmark_path):
-            # As long as we are in the with cd block, current working dir is changed
-            for cmd in self.benchmark_model.prepare_build_benchmark(
-                    self.args.benchmark_build_deps):
-                # There might be multiple preparing commands
-                if cmd != []:
-                    self.logger.debug('build deps command : ' + str(cmd))
-                    # As we initialize with [[]] there is at least one empty array
-                    stdout, stderr = run(cmd)
-                    self.logger.info(stdout)
+        self._build_complete_flags()
 
-            if stderr != '':
-                self.logger.error(stderr)
-        self.logger.info('Prepared for build')
 
-        complete_build_flags, complete_link_flags = self._build_complete_flags()
-
-        with cd(os.path.join(benchmark_path, self.benchmark_model.name)):
-            for cmd in self.benchmark_model.build_benchmark(self.compiler_model.getDictCompilers(),
-                                                            complete_build_flags,
-                                                            complete_link_flags,
-                                                            self.binary_name,
-                                                            self.args.benchmark_build_vars):
-                if cmd != []:
-                    self.logger.debug('build command : ' + str(cmd))
-                    # TODO : Might be useful having a build parser here
-                    stdout, stderr = run(cmd)
-                    self.logger.info(stdout)
-
-            if stderr != '':
-                self.logger.error(stderr)
-
-            self.logger.info('Benchmark built')
-
-            for cmd in self.benchmark_model.prepare_run_benchmark(
-                    self.args.benchmark_run_deps):
-                if cmd != []:
-                    self.logger.debug('run deps command : ' + str(cmd))
-                    stdout, stderr = run(cmd)
-                    self.logger.info(stdout)
-
-            if stderr != '':
-                self.logger.error(stderr)
-
-            self.logger.info('Ready for run')
-
-            run_cmd = self.benchmark_model.run_benchmark(self.binary_name,
-                                                         self.args.benchmark_options)
-
-            self.logger.info('run command : ' + str(run_cmd))
-
-            self.logger.info('Benchmark is being ran')
-
-            perf_parser = LinuxPerf(run_cmd, self.benchmark_model.get_plugin())
-            stdout, perf_results = perf_parser.stat()
-
+    def _post_run(self, stdout, perf_results):
+        """This function executes after the benchmark has been run"""
         self.logger.debug(stdout)
         self.logger.debug(perf_results)
         self._output_logs(stdout, perf_results)
         self.logger.info('The truth is out there')
+
+    def _run_all(self, list_of_commands, perf=False):
+        """This function executes the command required for the benchmark
+        prebuild, build, postbuild, prerun and run. When perf needs to be ran,
+        and output needs to be returned, set  perf to True"""
+        for cmd in list_of_commands:
+            if cmd != []:
+                self.logger.debug('Running command : ' + str(cmd))
+                if perf:
+                    perf_parser = LinuxPerf(cmd, self.benchmark_model.get_plugin())
+                    # stderr <=> perf_results
+                    stdout, stderr = perf_parser.stat()
+                else:
+                    stdout, stderr = run(cmd)
+
+                self.logger.info(stdout)
+
+                if stderr != '' and perf == False:
+                    self._print_error(stderr)
+
+                self.logger.debug('Command ran')
+
+        if perf:
+            return stdout, stderr
+
+    def main(self):
+        """This is where all the logic plays, as you would expect from a
+        main function"""
+
+        self._make_dirs()
+
+        self._load_models()
+
+        #self._prepare_build()
+        self._run_all(self.benchmark_model.prepare_build_benchmark(self.args.benchmark_build_deps))
+
+        #self._build()
+        self._run_all(self.benchmark_model.build_benchmark(self.compiler_model.getDictCompilers(),
+                                                              self.complete_build_flags,
+                                                              self.complete_link_flags,
+                                                              self.binary_name,
+                                                              self.args.benchmark_build_vars))
+        #self._post_build()
+
+        #self._pre_run()
+        self._run_all(self.benchmark_model.prepare_run_benchmark(self.args.benchmark_run_deps))
+
+        #self._run()
+        stdout, perf_result = self._run_all(self.benchmark_model.run_benchmark(self.binary_name,
+                                                                               self.args.benchmark_options), perf=True)
+
+        self._post_run(stdout, perf_result)
+
+        return 0
 
 
 if __name__ == '__main__':

@@ -32,11 +32,14 @@ class ModelImplementation(BenchmarkModel):
         """Prepares Environment for building and running the benchmark
         This entitles : installing dependencies, fetching benchmark code
         Can use Ansible to do this platform independantly and idempotently"""
+        self.build_root = os.path.join(self.benchmark_rootpath, self.name)
         prepare_cmds = [[]]
-        prepare_cmds.append(['mkdir', self.name])
-        prepare_cmds.append(['wget', '-P', self.name , self.benchmark_url])
-        prepare_cmds.append(['unzip', self.name + '/himenobmt.c.zip', '-d', self.name])
-        prepare_cmds.append(['lhasa', '-xw=' + self.name, './' + self.name + '/himenobmt.c.lzh'])
+        prepare_cmds.append(['mkdir', self.build_root])
+        prepare_cmds.append(['wget', '-P', self.build_root , self.benchmark_url])
+        prepare_cmds.append(['unzip', os.path.join(self.build_root,
+                                                   'himenobmt.c.zip'), '-d', self.build_root])
+        prepare_cmds.append(['lhasa', '-xw=' + self.build_root,
+                             os.path.join(self.build_root, 'himenobmt.c.lzh')])
         return prepare_cmds
 
     def prepare_run_benchmark(self, extra_deps):
@@ -56,6 +59,8 @@ class ModelImplementation(BenchmarkModel):
         build_cmd = [[]]
         make_cmd = []
         make_cmd.append('make')
+        make_cmd.append('-C')
+        make_cmd.append(self.build_root)
         make_cmd.append('CXX=' + compilers_dict['cxx'])
         make_cmd.append('CC=' + compilers_dict['cc'])
         make_cmd.append('FC=' + compilers_dict['fortran'])
@@ -68,11 +73,12 @@ class ModelImplementation(BenchmarkModel):
     def run_benchmark(self, binary_name, extra_runflags):
         """Runs the benchmarks using the base + extra flags"""
         binary_name = 'bmt'
-        binary_path = os.path.join(os.getcwd(), binary_name)
+        binary_path = os.path.join(self.build_root, binary_name)
+        run_cmd = [[]]
         if extra_runflags is None or extra_runflags == '':
-            run_cmd = [binary_path]
+            run_cmd.append([binary_path])
         else:
-            run_cmd = [binary_path, extra_runflags]
+            run_cmd.append([binary_path, extra_runflags])
         return run_cmd
 
     def get_plugin(self):
