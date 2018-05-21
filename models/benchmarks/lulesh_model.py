@@ -51,7 +51,7 @@ class ModelImplementation(BenchmarkModel):
         This entitles : installing dependencies, fetching benchmark code
         Can use Ansible to do this platform independantly and idempotently"""
         prepare_cmds = [[]]
-        prepare_run_cmd = ['git', 'clone', self.benchmark_url, self.name]
+        prepare_run_cmd = ['git', '-C', self.benchmark_rootpath, 'clone', self.benchmark_url, self.name]
         prepare_cmds.append(prepare_run_cmd)
         return prepare_cmds
 
@@ -70,6 +70,9 @@ class ModelImplementation(BenchmarkModel):
         build_cmd = [[]]
         make_cmd = []
         make_cmd.append('make')
+        make_cmd.append('-C')
+        make_cmd.append(os.path.join(self.benchmark_rootpath,
+                                            self.name))
         make_cmd.append('CXX=' + compilers_dict['cxx'])
         make_cmd.append('CC=' + compilers_dict['cc'])
         make_cmd.append('FC=' + compilers_dict['fortran'])
@@ -81,11 +84,12 @@ class ModelImplementation(BenchmarkModel):
 
     def run_benchmark(self, binary_name, extra_runflags):
         """Runs the benchmarks using the base + extra flags"""
-        binary_path = os.path.join(os.getcwd(), binary_name)
+        binary_path = os.path.join(self.benchmark_rootpath, self.name, binary_name)
+        run_cmd = [[]]
         if extra_runflags is None or extra_runflags == '':
-            run_cmd = [binary_path]
+            run_cmd.append([binary_path])
         else:
-            run_cmd = [binary_path, extra_runflags]
+            run_cmd.append([binary_path, extra_runflags])
         return run_cmd
 
     def get_plugin(self):

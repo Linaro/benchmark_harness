@@ -10,6 +10,7 @@ class BenchmarkModel(object):
         self.base_build_deps = ''
         self.base_run_deps = ''
         self.benchamrk_url = ''
+        self.benchmark_rootpath = ''
 
     def prepare_build_benchmark(self, extra_deps):
         """Prepares Environment for building the benchmark
@@ -37,3 +38,6 @@ class BenchmarkModel(object):
     def get_plugin(self):
         """Returns the plugin to parse the results"""
         pass
+
+    def set_path(self, path):
+        self.benchmark_rootpath = path
