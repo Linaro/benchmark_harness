@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 
 class BenchmarkModel(object):
     def __init__(self):
@@ -38,6 +39,12 @@ class BenchmarkModel(object):
     def get_plugin(self):
         """Returns the plugin to parse the results"""
         pass
+
+    def parse_run_args(self, run_args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--iterations', '-i', type=str, default='1',
+                            help='Number of times to run each instance')
+        return parser.parse_args(run_args.split())
 
     def set_path(self, path):
         self.benchmark_rootpath = path

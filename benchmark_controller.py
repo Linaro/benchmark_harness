@@ -18,9 +18,12 @@ import yaml
 import logging
 import coloredlogs
 from pathlib import Path
+
 from helper.compiler_factory import CompilerFactory
 from helper.model_loader import ModelLoader
 from helper.benchmark_logger import BenchmarkLogger
+from helper.command_output import CommandOutput
+
 from models.compilers.compiler_model import CompilerModel
 from models.benchmarks.benchmark_model import BenchmarkModel
 from models.machines.machine_model import MachineModel
@@ -77,23 +80,25 @@ class BenchmarkController(object):
             self.complete_build_flags = complete_build_flags
             self.complete_link_flags = complete_link_flags
 
-    def _output_logs(self, stdout, perf_results):
-        if stdout and not isinstance(stdout, str) and not isinstance(stdout, dict):
+    def _output_logs(self, benchmark_output):
+        stdout_list = benchmark_output.get_list_out()
+        perf_results = benchmark_output.get_list_err()
+        if stdout_list and not isinstance(stdout_list[0], str) and not isinstance(stdout_list[0], dict):
             raise TypeError(
-                'stdout should be a string of bytes or a dictionary')
-        if perf_results and not isinstance(perf_results, dict):
+                'stdout_list should be a list of string of bytes or a list of dictionaries')
+        if perf_results and not isinstance(perf_results[0], dict):
             raise TypeError('perf_results should be a dictionary')
         if not os.path.isdir(self.results_path):
             raise TypeError('%s should be a directory' % self.results_path)
 
-        if isinstance(stdout, dict):
+        if isinstance(stdout_list, list):
             with open(self.results_path + '/' + self.report_name + '_stdout_parser_results.report', 'w') as stdout_d:
-                yaml.dump(stdout, stdout_d, default_flow_style=False)
+                yaml.dump(stdout_list, stdout_d, default_flow_style=False)
         else:
             with open(self.results_path + '/' + self.report_name + '_stdout.report', 'w') as stdout_d:
-                stdout_d.write(stdout)
+                stdout_d.write(stdout_list)
 
-        if isinstance(perf_results, dict):
+        if isinstance(perf_results, list):
             with open(self.results_path + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
                 yaml.dump(perf_results, perf_res_d, default_flow_style=False)
         else:
@@ -139,17 +144,17 @@ class BenchmarkController(object):
 
         self._build_complete_flags()
 
-    def _post_run(self, stdout, perf_results):
+    def _post_run(self, benchmark_output):
         """This function executes after the benchmark has been run"""
-        self.logger.debug(stdout)
-        self.logger.debug(perf_results)
-        self._output_logs(stdout, perf_results)
+        self._output_logs(benchmark_output)
         self.logger.info('The truth is out there')
 
     def _run_all(self, list_of_commands, perf=False):
         """This function executes the command required for the benchmark
         prebuild, build, postbuild, prerun and run. When perf needs to be ran,
         and output needs to be returned, set  perf to True"""
+        output = CommandOutput()
+
         for cmd in list_of_commands:
             if cmd != []:
                 self.logger.debug('Running command : ' + str(cmd))
@@ -168,8 +173,10 @@ class BenchmarkController(object):
 
                 self.logger.debug('Command ran')
 
-        if perf:
-            return stdout, stderr
+                else:
+                    output.add(stdout, stderr)
+
+        return output
 
     def main(self):
         """This is where all the logic plays, as you would expect from a
