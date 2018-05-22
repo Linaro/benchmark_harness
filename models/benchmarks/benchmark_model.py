@@ -17,7 +17,7 @@ class BenchmarkModel(object):
         This entitles : installing dependencies for build"""
         pass
 
-    def prepare_run_benchmark(self, extra_deps):
+    def prepare_run_benchmark(self, extra_deps, compilers_dict):
         """Prepares envrionment for running the benchmark
         This entitles : fetching the benchmark and preparing
         for running it"""

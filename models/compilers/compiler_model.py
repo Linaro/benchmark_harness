@@ -51,7 +51,8 @@ class CompilerModel(object):
     def getDictCompilers(self):
         return {'cxx': os.path.join(self.compilers_path, self.cxx_name),
                 'cc': os.path.join(self.compilers_path, self.cc_name),
-                'fortran': os.path.join(self.compilers_path, self.fortran_name)}
+                'fortran': os.path.join(self.compilers_path, self.fortran_name),
+                'lib': os.path.join(self.compilers_path, '../lib')}
 
     def validate_flags(self, complete_compiler_flags, complete_link_flags):
         '''Translate flags that need to be translated from GNU notation to
