@@ -56,28 +56,25 @@ class CompilerFactory(object):
         if len(self.toolchain_url.split('/')) < 4:
             raise EnvironmentError('SFTP URL is not valid %s' %
                                    self.toolchain_url)
-        if len(self.toolchain_url.split('/')) == 4:
-            sftp_dirpath = '/'
-        else:
-            sftp_dirpath = '/' + \
-                "/".join(self.toolchain_url.split("/")[3:-1]) + '/'
+
+        sftp_ip = self.toolchain_url.split("/")[2:3][0]
+        sftp_filepath = '/'.join(self.toolchain_url.split("/")[3:])
+        sftp_filename = self.toolchain_url.split('/')[-1]
 
         if self.sftp_user != '':
             sftp_user = self.sftp_user + '@'
         else:
             sftp_user = ''
 
-        sftp_ip = self.toolchain_url.split("/")[2:3][0]
-        sftp_file = self.toolchain_url.split("/")[-1]
         with cd(self.toolchain_extractpath):
-            stdout = subprocess.check_output(['(echo "get ' + sftp_file + '" && echo "exit") | \
-                                              sftp -o ForwardAgent=yes -o ConnectTimeout=60 -o \
+            stdout = subprocess.check_output(['sftp -o ForwardAgent=yes -o ConnectTimeout=60 -o \
                                               UserKnownHostsFile=/dev/null -o \
-                                              StrictHostKeyChecking=no ' + sftp_user +
-                                              sftp_ip + ':' + sftp_dirpath],
+                                              StrictHostKeyChecking=no ' +
+                                              sftp_user + sftp_ip +
+                                              ':/' + sftp_filepath],
                                              stderr=subprocess.STDOUT, shell=True)
             print(stdout)
-            return self._extractTarball(sftp_file)
+            return self._extractTarball(sftp_filename)
 
     def _extractTarball(self, filename):
         before = os.listdir()
