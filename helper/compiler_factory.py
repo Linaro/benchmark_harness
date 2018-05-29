@@ -15,6 +15,7 @@ import tarfile
 import os
 import re
 import importlib
+import subprocess
 from urllib.request import urlretrieve
 from pathlib import Path
 from helper.cd import cd
@@ -25,14 +26,18 @@ from shutil import which
 class CompilerFactory(object):
     """The Wonderful Factory of Compilers"""
 
-    def __init__(self, toolchain_url, toolchain_extractpath):
+    def __init__(self, toolchain_url, sftp_user, toolchain_extractpath):
         self.toolchain_url = toolchain_url
+        self.sftp_user = sftp_user
         self.toolchain_extractpath = toolchain_extractpath
 
     def getCompiler(self):
         """This is the method that will discriminate between downloading and
         calling locally installed toolchain"""
-        if self.toolchain_url.find('http') != -1 or self.toolchain_url.find('ftp') != -1:
+        if 'sftp' in self.toolchain_url:
+            extracted_tar = self._sftpToolchain()
+            return self._fetchCompiler(extracted_tar)
+        elif self.toolchain_url.find('http') == 0 or self.toolchain_url.find('ftp') == 0:
             extracted_tar = self._downloadToolchain()
             return self._fetchCompiler(extracted_tar)
         else:
@@ -46,18 +51,46 @@ class CompilerFactory(object):
         else:
             raise ImportError('Compiler %s not installed' % compiler)
 
+    def _sftpToolchain(self):
+        """Fetches the Toolchain via sftp"""
+        if len(self.toolchain_url.split('/')) < 4:
+            raise EnvironmentError('SFTP URL is not valid %s' %
+                                   self.toolchain_url)
+
+        sftp_ip = self.toolchain_url.split("/")[2:3][0]
+        sftp_filepath = '/'.join(self.toolchain_url.split("/")[3:])
+        sftp_filename = self.toolchain_url.split('/')[-1]
+
+        if self.sftp_user != '':
+            sftp_user = self.sftp_user + '@'
+        else:
+            sftp_user = ''
+
+        with cd(self.toolchain_extractpath):
+            stdout = subprocess.check_output(['sftp -o ForwardAgent=yes -o ConnectTimeout=60 -o \
+                                              UserKnownHostsFile=/dev/null -o \
+                                              StrictHostKeyChecking=no ' +
+                                              sftp_user + sftp_ip +
+                                              ':/' + sftp_filepath],
+                                             stderr=subprocess.STDOUT, shell=True)
+            print(stdout)
+            return self._extractTarball(sftp_filename)
+
+    def _extractTarball(self, filename):
+        before = os.listdir()
+        # We need to find out what the extracted dir is called
+        tarball = tarfile.open(filename)
+        tarball.extractall()
+        after = os.listdir()
+        filename = [x for x in after if x not in before]
+        # Substract the before list of directories to the after list
+        return filename[0]
+
     def _downloadToolchain(self):
         """Downloads... toolchain !"""
         with cd(self.toolchain_extractpath):
             filename, headers = urlretrieve(self.toolchain_url)
-            before = os.listdir()
-            # We need to find out what the extracted dir is called
-            tarball = tarfile.open(filename)
-            tarball.extractall()
-            after = os.listdir()
-            filename = [x for x in after if x not in before]
-            # Substract the before list of directories to the after list
-            return filename[0]
+            return self._extractTarball(filename)
 
     def _fetchCompiler(self, extracted_tar):
         """Fetches the full path to the frontend executable"""
@@ -83,7 +116,8 @@ class CompilerFactory(object):
         for model in list_compiler_modules:
             if model.find('_model') != -1:
                 try:
-                    loaded_model = ModelLoader(model, 'compiler', original_path).load()
+                    loaded_model = ModelLoader(
+                        model, 'compiler', original_path).load()
                     if loaded_model.check(bin_path):
                         return loaded_model
                 except ImportError as err:

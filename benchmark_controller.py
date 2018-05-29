@@ -122,6 +122,7 @@ class BenchmarkController(object):
         """This function fetches the appropriate models depending on the
         supplied options """
         compiler_factory = CompilerFactory(self.args.toolchain,
+                                           self.args.sftp_user,
                                            self.compiler_path)
         try:
             self.benchmark_model = ModelLoader(
@@ -210,6 +211,8 @@ if __name__ == '__main__':
                         help='The type of the machine to run the benchmark on')
     parser.add_argument('toolchain', type=str,
                         help='The url or local of the toolchain with which to compile the benchmark')
+    parser.add_argument('--sftp-user', type=str, default='',
+                        help='The sftp user to connect to the sftp server with')
     parser.add_argument('--compiler-flags', type=str, default='',
                         help='The extra compiler flags to use with compiler')
     parser.add_argument('--link-flags', type=str, default='',
