@@ -38,7 +38,6 @@ class BenchmarkController(object):
         self.logger = BenchmarkLogger(logging.getLogger(__name__), self.parser,
                                       self.args.verbose)
 
-
     def _make_unique_name(self):
         """Unique name for the binary and results files"""
         identity = str(
@@ -80,7 +79,8 @@ class BenchmarkController(object):
 
     def _output_logs(self, stdout, perf_results):
         if stdout and not isinstance(stdout, str) and not isinstance(stdout, dict):
-            raise TypeError('stdout should be a string of bytes or a dictionary')
+            raise TypeError(
+                'stdout should be a string of bytes or a dictionary')
         if perf_results and not isinstance(perf_results, dict):
             raise TypeError('perf_results should be a dictionary')
         if not os.path.isdir(self.results_path):
@@ -107,7 +107,7 @@ class BenchmarkController(object):
         self._make_unique_name()
 
         self.unique_root_path = os.path.join(self.args.benchmark_root,
-                                        self.binary_name)
+                                             self.binary_name)
         self.compiler_path = os.path.join(self.unique_root_path, 'compiler/')
         self.benchmark_path = os.path.join(self.unique_root_path, 'benchmark/')
         self.results_path = os.path.join(self.unique_root_path, 'results/')
@@ -139,7 +139,6 @@ class BenchmarkController(object):
 
         self._build_complete_flags()
 
-
     def _post_run(self, stdout, perf_results):
         """This function executes after the benchmark has been run"""
         self.logger.debug(stdout)
@@ -155,7 +154,8 @@ class BenchmarkController(object):
             if cmd != []:
                 self.logger.debug('Running command : ' + str(cmd))
                 if perf:
-                    perf_parser = LinuxPerf(cmd, self.benchmark_model.get_plugin())
+                    perf_parser = LinuxPerf(
+                        cmd, self.benchmark_model.get_plugin())
                     # stderr <=> perf_results
                     stdout, stderr = perf_parser.stat()
                 else:
@@ -179,21 +179,23 @@ class BenchmarkController(object):
 
         self._load_models()
 
-        #prepare_build
-        self._run_all(self.benchmark_model.prepare_build_benchmark(self.args.benchmark_build_deps))
+        # prepare_build
+        self._run_all(self.benchmark_model.prepare_build_benchmark(
+            self.args.benchmark_build_deps))
 
-        #build
+        # build
         self._run_all(self.benchmark_model.build_benchmark(self.compiler_model.getDictCompilers(),
-                                                              self.complete_build_flags,
-                                                              self.complete_link_flags,
-                                                              self.binary_name,
-                                                              self.args.benchmark_build_vars))
-        #post_build
+                                                           self.complete_build_flags,
+                                                           self.complete_link_flags,
+                                                           self.binary_name,
+                                                           self.args.benchmark_build_vars))
+        # post_build
 
-        #pre_run
-        self._run_all(self.benchmark_model.prepare_run_benchmark(self.args.benchmark_run_deps))
+        # pre_run
+        self._run_all(self.benchmark_model.prepare_run_benchmark(
+            self.args.benchmark_run_deps))
 
-        #run
+        # run
         stdout, perf_result = self._run_all(self.benchmark_model.run_benchmark(self.binary_name,
                                                                                self.args.benchmark_options), perf=True)
 
