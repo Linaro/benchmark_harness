@@ -61,13 +61,12 @@ class ModelImplementation(BenchmarkModel):
                              os.path.join(self.build_root, 'himenobmt.c.lzh')])
         return prepare_cmds
 
-    def prepare_run_benchmark(self, extra_deps):
+    def prepare_run_benchmark(self, extra_deps, compilers_dict):
         """Prepares envrionment for running the benchmark
         This entitles : fetching the benchmark and preparing
         for running it"""
         prepare_cmds = [[]]
-        prepare_run_cmd = []
-        prepare_cmds.append(prepare_run_cmd)
+        os.environ['LD_LIBRARY_PATH'] += compilers_dict['lib']
         return prepare_cmds
 
     def build_benchmark(self, compilers_dict, complete_compile_flags,
