@@ -66,7 +66,10 @@ class ModelImplementation(BenchmarkModel):
         This entitles : fetching the benchmark and preparing
         for running it"""
         prepare_cmds = [[]]
-        os.environ['LD_LIBRARY_PATH'] += compilers_dict['lib']
+        if 'LD_LIBRARY_PATH' in os.environ:
+            os.environ['LD_LIBRARY_PATH'] += compilers_dict['lib']
+        else:
+            os.environ['LD_LIBRARY_PATH'] = compilers_dict['lib']
         return prepare_cmds
 
     def build_benchmark(self, compilers_dict, complete_compile_flags,

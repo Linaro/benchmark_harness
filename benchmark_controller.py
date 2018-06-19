@@ -173,8 +173,7 @@ class BenchmarkController(object):
 
                 self.logger.debug('Command ran')
 
-                else:
-                    output.add(stdout, stderr)
+                output.add(stdout, stderr)
 
         return output
 
@@ -203,10 +202,10 @@ class BenchmarkController(object):
                                                                  self.compiler_model.getDictCompilers()))
 
         # run
-        stdout, perf_result = self._run_all(self.benchmark_model.run_benchmark(self.binary_name,
+        command_output = self._run_all(self.benchmark_model.run_benchmark(self.binary_name,
                                                                                self.args.benchmark_options), perf=True)
 
-        self._post_run(stdout, perf_result)
+        self._post_run(command_output)
 
         return 0
 
