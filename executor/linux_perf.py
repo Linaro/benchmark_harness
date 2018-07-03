@@ -91,7 +91,6 @@ class LinuxPerf:
                 ev_str += event
                 ev_str += ','
             ev_str.pop()
-            print(ev_str)
             call.append(ev_str)
 
         # Adding program to perf

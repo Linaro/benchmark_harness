@@ -9,6 +9,6 @@ class MachineModel(object):
     def _machine_specific_setup(self):
         pass
 
-    def main(self):
+    def get_flags(self):
         self._machine_specific_setup()
         return self.mcomp_flags, self.mlink_flags

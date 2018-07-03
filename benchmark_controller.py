@@ -40,76 +40,84 @@ class BenchmarkController(object):
         self.root_path = os.getcwd()
         self.logger = BenchmarkLogger(logging.getLogger(__name__), self.parser,
                                       self.args.verbose)
+        self._make_unique_name()
+
+        self.logger.info('Benchmark Controller initialised')
 
     def _make_unique_name(self):
         """Unique name for the binary and results files"""
+
         identity = str(
-            self.args.name +
-            '_' +
-            (self.args.toolchain.rsplit('/', 1)[-1])[:24] +
-            '_' +
-            self.args.compiler_flags.replace(
-                " ",
-                "") +
-            '_' +
-            self.args.machine_type +
-            '_' +
-            self.args.benchmark_options.replace(
-                " ",
-                ""))
+            self.args.name + '_' +
+            (self.args.toolchain.rsplit('/', 1)[-1])[:24] + '_' +
+            self.args.compiler_flags.replace(" ", "") + '_' +
+            self.args.machine_type + '_' +
+            self.args.benchmark_options.replace(" ", ""))
+
         self.binary_name = re.sub("[^a-zA-Z0-9_]+", "", identity).lower()
         self.report_name = identity
 
-    def _build_complete_flags(self, mode='DEFAULT'):
-        if self.compiler_model is not None and self.benchmark_model is not None \
-                and self.machine_model is not None:
-            complete_build_flags, complete_link_flags = self.compiler_model.main(
-                mode)
-            m_complete_build_flags, m_complete_link_flags = self.machine_model.main()
-            b_complete_build_flags, b_complete_link_flags = self.benchmark_model.fetch_flags()
+        self.logger.info('Unique name: %s' % self.report_name)
 
-            complete_build_flags = complete_build_flags + ' ' + m_complete_build_flags + \
-                ' ' + b_complete_build_flags + ' ' + self.args.compiler_flags
+    def _build_complete_flags(self):
+        """Joins all cpmopile and link flags from all sources into one"""
 
-            complete_link_flags = complete_link_flags + ' ' + m_complete_link_flags + \
-                ' ' + b_complete_link_flags + ' ' + self.args.link_flags
+        if self.compiler_model is None or \
+           self.benchmark_model is None or \
+           self.machine_model is None:
+           return
 
-            complete_build_flags, complete_link_flags = self.compiler_model.validate_flags(
-                complete_build_flags, complete_link_flags)
+        # Compiler specific flags
+        build_flags, link_flags = self.compiler_model.get_flags()
+        self.complete_build_flags = build_flags
+        self.complete_link_flags = link_flags
 
-            self.complete_build_flags = complete_build_flags
-            self.complete_link_flags = complete_link_flags
+        # Machine specific flags
+        build_flags, link_flags = self.machine_model.get_flags()
+        self.complete_build_flags += ' ' + build_flags
+        self.complete_link_flags += ' ' + link_flags
+
+        # Benchmark specific flags
+        build_flags, link_flags = self.benchmark_model.get_flags()
+        self.complete_build_flags += ' ' + build_flags
+        self.complete_link_flags += ' ' + link_flags
+
+        # Validate flags (based on compiler)
+        build_flags, link_flags = self.compiler_model.validate_flags(
+            self.complete_build_flags, self.complete_link_flags)
+
+        self.complete_build_flags = build_flags
+        self.complete_link_flags = link_flags
+
+        self.logger.info('Build flags: %s' % self.complete_build_flags)
+        self.logger.info('Link flags: %s' % self.complete_link_flags)
 
     def _output_logs(self, benchmark_output):
-        stdout_list = benchmark_output.get_list_out()
-        perf_results = benchmark_output.get_list_err()
-        if stdout_list and not isinstance(stdout_list[0], str) and not isinstance(stdout_list[0], dict):
-            raise TypeError(
-                'stdout_list should be a list of string of bytes or a list of dictionaries')
-        if perf_results and not isinstance(perf_results[0], dict):
-            raise TypeError('perf_results should be a dictionary')
+        """Print out the results"""
+
+        out = benchmark_output.get_list_out()
+        err = benchmark_output.get_list_err()
+
+        # Make sure we have the right type of results
+        # Must be a list of either str or dict
+        if out and not \
+           (isinstance(out[0], str) or isinstance(out[0], dict)):
+            raise TypeError('out should be a list of string or dict')
+        if err and not \
+           (isinstance(err[0], str) or isinstance(err[0], dict)):
+            raise TypeError('err should be a list of string or dict')
         if not os.path.isdir(self.results_path):
             raise TypeError('%s should be a directory' % self.results_path)
 
-        if isinstance(stdout_list, list):
-            with open(self.results_path + '/' + self.report_name + '_stdout_parser_results.report', 'w') as stdout_d:
-                yaml.dump(stdout_list, stdout_d, default_flow_style=False)
-        else:
-            with open(self.results_path + '/' + self.report_name + '_stdout.report', 'w') as stdout_d:
-                stdout_d.write(stdout_list)
-
-        if isinstance(perf_results, list):
-            with open(self.results_path + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
-                yaml.dump(perf_results, perf_res_d, default_flow_style=False)
-        else:
-            with open(self.results_path + '/' + self.report_name + '_perf_parser_results.report', 'w') as perf_res_d:
-                perf_res_d.write(perf_results)
+        # Print both stdout and stderr
+        base_path = self.results_path + '/' + self.report_name
+        with open(base_path + '.out', 'w') as stdout:
+            yaml.dump(out, stdout, default_flow_style=False)
+        with open(base_path + '.err', 'w') as stderr:
+            yaml.dump(err, stderr, default_flow_style=False)
 
     def _make_dirs(self):
-        """This function creates the directory at the supplied benchmark root
-        where it will put the benchmark code and binaries, compiler binaries
-        and results"""
-        self._make_unique_name()
+        """Create the directory at the supplied benchmark root"""
 
         self.unique_root_path = os.path.join(self.args.benchmark_root,
                                              self.binary_name)
@@ -121,121 +129,118 @@ class BenchmarkController(object):
         os.mkdir(self.compiler_path)
         os.mkdir(self.benchmark_path)
         os.mkdir(self.results_path)
-        self.logger.info('Made dirs')
+
+        self.logger.info('Root path: %s' % self.unique_root_path)
 
     def _load_models(self):
-        """This function fetches the appropriate models depending on the
-        supplied options """
-        compiler_factory = CompilerFactory(self.args.toolchain,
-                                           self.args.sftp_user,
-                                           self.compiler_path)
+        """Load compiler/benchmark/machine models"""
+
         try:
-            self.benchmark_model = ModelLoader(
-                self.args.name + '_model.py', 'benchmark', self.root_path).load()
+            # TODO: We may want to create factories for benchmark and machine
+            self.benchmark_model = ModelLoader(self.args.name + '_model.py',
+                                               'benchmark',
+                                               self.root_path).load()
             self.benchmark_model.set_path(os.path.abspath(self.benchmark_path))
-            self.logger.info('Fetched Benchmark')
-            self.machine_model = ModelLoader(
-                self.args.machine_type + '_model.py', 'machine', self.root_path).load()
-            self.logger.info('Fetched Machine')
+            self.logger.info('Loaded benchmark model for %s' % self.args.name)
+
+            self.machine_model = ModelLoader(self.args.machine_type + '_model.py',
+                                             'machine',
+                                             self.root_path).load()
+            self.logger.info('Loaded machine model for %s' % self.args.machine_type)
+
+            compiler_factory = CompilerFactory(self.args.toolchain,
+                                               self.args.sftp_user,
+                                               self.compiler_path)
             self.compiler_model = compiler_factory.getCompiler()
-            self.logger.info('Fetched Compiler')
+            self.logger.info('Loaded compiler model for %s' % self.args.toolchain)
         except ImportError as err:
             self.logger.error(err, True)
 
         self._build_complete_flags()
 
-    def _post_run(self, benchmark_output):
-        """This function executes after the benchmark has been run"""
-        self._output_logs(benchmark_output)
-        self.logger.info('The truth is out there')
-
     def _run_all(self, list_of_commands, perf=False):
-        """This function executes the command required for the benchmark
-        prebuild, build, postbuild, prerun and run. When perf needs to be ran,
-        and output needs to be returned, set  perf to True"""
+        """Runs and collects output and perf results (from stderr)"""
+
         output = CommandOutput()
 
         for cmd in list_of_commands:
-            if cmd != []:
-                self.logger.debug('Running command : ' + str(cmd))
-                if perf:
-                    perf_parser = LinuxPerf(
-                        cmd, self.benchmark_model.get_plugin())
-                    # stderr <=> perf_results
-                    stdout, stderr = perf_parser.stat()
-                else:
-                    stdout, stderr = run(cmd)
+            if not cmd:
+                continue
 
+            self.logger.info('Running command : ' + str(cmd))
+            # TODO: Make sure we don't have a special case for perf
+            # This should be transparent to the user
+            if perf:
+                # Passing benchmark plugin for stdout parsing
+                perf_parser = LinuxPerf(cmd, self.benchmark_model.get_plugin())
+                stdout, stderr = perf_parser.stat()
+            else:
+                stdout, stderr = run(cmd)
                 self.logger.info(stdout)
 
-                if stderr != '' and perf == False:
-                    self.logger.error(stderr)
-
-                self.logger.debug('Command ran')
-
-                output.add(stdout, stderr)
+            output.add(stdout, stderr)
+            self.logger.info('Output added to the list')
 
         return output
 
     def main(self):
-        """This is where all the logic plays, as you would expect from a
-        main function"""
+        """Main driver - downloads, unzip, compile, run, collect results"""
 
+        self.logger.info(' ++ Preparing Environment ++')
         self._make_dirs()
 
+        self.logger.info(' ++ Loading Models (compiler/bench/machine) ++')
         self._load_models()
 
-        # prepare_build
-        self._run_all(self.benchmark_model.prepare_build_benchmark(
-            self.args.benchmark_build_deps))
+        self.logger.info(' ++ Preparing Benchmark Build ++')
+        self._run_all(self.benchmark_model.prepare_build_benchmark(self.args.benchmark_build_deps))
 
-        # build
+        self.logger.info(' ++ Building Benchmark ++')
         self._run_all(self.benchmark_model.build_benchmark(self.compiler_model.getDictCompilers(),
                                                            self.complete_build_flags,
                                                            self.complete_link_flags,
                                                            self.binary_name,
                                                            self.args.benchmark_build_vars))
-        # post_build
 
-        #pre_run
+        self.logger.info(' ++ Preparing Execution ++')
         self._run_all(self.benchmark_model.prepare_run_benchmark(self.args.benchmark_run_deps,
                                                                  self.compiler_model.getDictCompilers()))
 
-        # run
-        command_output = self._run_all(self.benchmark_model.run_benchmark(self.binary_name,
+        self.logger.info(' ++ Running Benchmark ++')
+        benchmark_output = self._run_all(self.benchmark_model.run_benchmark(self.binary_name,
                                                                                self.args.benchmark_options), perf=True)
 
-        self._post_run(command_output)
+        self.logger.info(' ++ Collecting Results ++')
+        self._output_logs(benchmark_output)
 
         return 0
 
 
 if __name__ == '__main__':
     """This is the point of entry of our application, not much logic here"""
-    parser = argparse.ArgumentParser(description='Run some benchmark.')
+    parser = argparse.ArgumentParser(description='Benchmark Harness')
     parser.add_argument('name', metavar='benchmark_name', type=str,
-                        help='The name of the benchmark to be run')
+                        help='The name of the benchmark to run')
     parser.add_argument('machine_type', type=str,
                         help='The type of the machine to run the benchmark on')
     parser.add_argument('toolchain', type=str,
-                        help='The url or local of the toolchain with which to compile the benchmark')
+                        help='The url/name of the toolchain to compile the benchmark')
     parser.add_argument('--sftp-user', type=str, default='',
                         help='The sftp user to connect to the sftp server with')
     parser.add_argument('--compiler-flags', type=str, default='',
-                        help='The extra compiler flags to use with compiler')
+                        help='The extra compiler flags')
     parser.add_argument('--link-flags', type=str, default='',
-                        help='The extra link flags to use with the benchmark building')
+                        help='The extra link flags')
     parser.add_argument('--benchmark-build-vars', type=str, default='',
                         help='The extra values the benchmark build needs (e.g. MODEL for Himeno')
     parser.add_argument('--benchmark-options', type=str, default='',
-                        help='The benchmark options to use with the benchmark')
+                        help='The benchmark options')
     parser.add_argument('--benchmark-build-deps', type=str, default='',
                         help='The benchmark specific extra dependencies for the build')
     parser.add_argument('--benchmark-run-deps', type=str, default='',
                         help='The benchmark specific extra dependencies for the run')
     parser.add_argument('--benchmark-root', type=str,
-                        help='The benchmark root directory where things will be \
-                        extracted and created')
+                        help='The benchmark root directory')
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help='The verbosity of logging output')
     args = parser.parse_args()

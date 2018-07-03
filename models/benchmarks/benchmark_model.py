@@ -24,7 +24,7 @@ class BenchmarkModel(object):
         for running it"""
         pass
 
-    def fetch_flags(self):
+    def get_flags(self):
         return self.base_compileflags, self.base_linkflags
 
     def build_benchmark(self, complete_compile_flags, complete_link_flags,
