@@ -12,7 +12,7 @@ class BenchmarkLogger(object):
         self.parser = parser
 
     def error(self, err, print_help=False):
-        self.logger.info(err)
+        self.logger.error(err)
         if print_help:
             print('\n\n')
             self.parser.print_help()

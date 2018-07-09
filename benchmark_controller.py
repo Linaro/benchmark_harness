@@ -122,6 +122,8 @@ class BenchmarkController(object):
     def _make_dirs(self):
         """Create the directory at the supplied benchmark root"""
 
+        self.logger.debug('Initial root path: %s' % self.args.benchmark_root)
+        self.logger.debug('Binary name: %s' % self.binary_name)
         self.unique_root_path = os.path.join(self.args.benchmark_root,
                                              self.binary_name)
         self.compiler_path = os.path.join(self.unique_root_path, 'compiler/')
@@ -133,7 +135,7 @@ class BenchmarkController(object):
         os.mkdir(self.benchmark_path)
         os.mkdir(self.results_path)
 
-        self.logger.info('Root path: %s' % self.unique_root_path)
+        self.logger.info('Unique root path: %s' % self.unique_root_path)
 
     def _load_models(self):
         """Load compiler/benchmark/machine models"""
@@ -242,7 +244,7 @@ if __name__ == '__main__':
                         help='The benchmark specific extra dependencies for the build')
     parser.add_argument('--benchmark-run-deps', type=str, default='',
                         help='The benchmark specific extra dependencies for the run')
-    parser.add_argument('--benchmark-root', type=str,
+    parser.add_argument('--benchmark-root', type=str, required=True,
                         help='The benchmark root directory')
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help='The verbosity of logging output')
