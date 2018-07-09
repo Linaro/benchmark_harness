@@ -65,22 +65,29 @@ class BenchmarkController(object):
         if self.compiler_model is None or \
            self.benchmark_model is None or \
            self.machine_model is None:
-           return
+            self.logger.warning('No models loaded! Not trying to build flags')
+            return
 
         # Compiler specific flags
         build_flags, link_flags = self.compiler_model.get_flags()
         self.complete_build_flags = build_flags
         self.complete_link_flags = link_flags
+        self.logger.debug('Toolchain specific build flags: %s' % build_flags)
+        self.logger.debug('Toolchain specific link flags: %s' % link_flags)
 
         # Machine specific flags
         build_flags, link_flags = self.machine_model.get_flags()
         self.complete_build_flags += ' ' + build_flags
         self.complete_link_flags += ' ' + link_flags
+        self.logger.debug('Machine specific build flags: %s' % build_flags)
+        self.logger.debug('Machine specific link flags: %s' % link_flags)
 
         # Benchmark specific flags
         build_flags, link_flags = self.benchmark_model.get_flags()
         self.complete_build_flags += ' ' + build_flags
         self.complete_link_flags += ' ' + link_flags
+        self.logger.debug('Benchmark specific build flags: %s' % build_flags)
+        self.logger.debug('Benchmark specific link flags: %s' % link_flags)
 
         # Validate flags (based on compiler)
         build_flags, link_flags = self.compiler_model.validate_flags(
@@ -126,33 +133,40 @@ class BenchmarkController(object):
         self.logger.debug('Binary name: %s' % self.binary_name)
         self.unique_root_path = os.path.join(self.args.benchmark_root,
                                              self.binary_name)
-        self.compiler_path = os.path.join(self.unique_root_path, 'compiler/')
-        self.benchmark_path = os.path.join(self.unique_root_path, 'benchmark/')
-        self.results_path = os.path.join(self.unique_root_path, 'results/')
-
         os.mkdir(self.unique_root_path)
-        os.mkdir(self.compiler_path)
-        os.mkdir(self.benchmark_path)
-        os.mkdir(self.results_path)
-
         self.logger.info('Unique root path: %s' % self.unique_root_path)
+
+        self.compiler_path = os.path.join(self.unique_root_path, 'compiler/')
+        os.mkdir(self.compiler_path)
+        self.logger.debug('Compiler path: %s' % self.compiler_path)
+
+        self.benchmark_path = os.path.join(self.unique_root_path, 'benchmark/')
+        os.mkdir(self.benchmark_path)
+        self.logger.debug('Benchmark path: %s' % self.benchmark_path)
+
+        self.results_path = os.path.join(self.unique_root_path, 'results/')
+        os.mkdir(self.results_path)
+        self.logger.debug('Results path: %s' % self.results_path)
 
     def _load_models(self):
         """Load compiler/benchmark/machine models"""
 
         try:
             # TODO: We may want to create factories for benchmark and machine
+            self.logger.debug('Benchmark model: %s' % self.args.name + '_model.py')
             self.benchmark_model = ModelLoader(self.args.name + '_model.py',
                                                'benchmark',
                                                self.root_path).load()
             self.benchmark_model.set_path(os.path.abspath(self.benchmark_path))
             self.logger.info('Loaded benchmark model for %s' % self.args.name)
 
+            self.logger.debug('Machine model: %s' % self.args.machine_type + '_model.py')
             self.machine_model = ModelLoader(self.args.machine_type + '_model.py',
                                              'machine',
                                              self.root_path).load()
             self.logger.info('Loaded machine model for %s' % self.args.machine_type)
 
+            self.logger.debug('Compiler model: %s' % self.args.toolchain + '_model.py')
             compiler_factory = CompilerFactory(self.args.toolchain,
                                                self.args.sftp_user,
                                                self.compiler_path)
@@ -170,6 +184,7 @@ class BenchmarkController(object):
 
         for cmd in list_of_commands:
             if not cmd:
+                self.logger.debug('Empty command, ignoring')
                 continue
 
             self.logger.info('Running command : ' + str(cmd))
@@ -177,6 +192,8 @@ class BenchmarkController(object):
             # This should be transparent to the user
             if perf:
                 # Passing benchmark plugin for stdout parsing
+                self.logger.debug('Executing with Linux Perf engine')
+
                 perf_parser = LinuxPerf(cmd, self.benchmark_model.get_plugin())
                 stdout, stderr = perf_parser.stat()
             else:
