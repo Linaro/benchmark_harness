@@ -116,6 +116,9 @@ class BenchmarkController(object):
         with open(base_path + '.err', 'w') as stderr:
             yaml.dump(err, stderr, default_flow_style=False)
 
+        self.logger.info('Output logs at: %s.out' % base_path)
+        self.logger.info(' Error logs at: %s.err' % base_path)
+
     def _make_dirs(self):
         """Create the directory at the supplied benchmark root"""
 
@@ -179,7 +182,7 @@ class BenchmarkController(object):
                 self.logger.info(stdout)
 
             output.add(stdout, stderr)
-            self.logger.info('Output added to the list')
+            self.logger.info('Execution complete. Output added to the list')
 
         return output
 

@@ -73,7 +73,6 @@ class CompilerFactory(object):
                                               sftp_user + sftp_ip +
                                               ':/' + sftp_filepath],
                                              stderr=subprocess.STDOUT, shell=True)
-            print(stdout)
             return self._extractTarball(sftp_filename)
 
     def _extractTarball(self, filename):
