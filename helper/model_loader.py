@@ -17,26 +17,21 @@ class ModelLoader(object):
                                        + model_name)
 
     def load(self):
-        return self._load_model()
+        """Class loader python style"""
+        self._validate_compiler_model()
+
+        with cd(self.root_path):
+            self.model_name = re.sub("[*.py]", "", self.model_name)
+            mod = importlib.import_module(
+                'models.' + self.class_type + 's.' + self.model_name)
+        return mod.ModelImplementation()
 
     def _validate_compiler_model(self):
         """Verifies that the file actually contains the model class"""
-        if os.path.isfile(self.model_path):
-            raw = Path(self.model_path).read_text()
-            if raw.find('class ModelImplementation') == -1:
-                return False
-            else:
-                return True
-        else:
+        if not os.path.isfile(self.model_path):
             raise ImportError('Bad Path ' + self.model_path)
 
-    def _load_model(self):
-        """Class loader python style"""
-        if self._validate_compiler_model():
-            with cd(self.root_path):
-                self.model_name = re.sub("[*.py]", "", self.model_name)
-                mod = importlib.import_module(
-                    'models.' + self.class_type + 's.' + self.model_name)
-            return mod.ModelImplementation()
-        raise ImportError('Could not load %s model at %s' % (self.model_name,
-                                                                 self.model_path))
+        raw = Path(self.model_path).read_text()
+        if raw.find('class ModelImplementation') == -1:
+            raise ImportError('Model %s does not implement ModelImplementation' %
+                              self.model_name)
