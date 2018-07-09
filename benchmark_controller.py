@@ -153,25 +153,26 @@ class BenchmarkController(object):
 
         try:
             # TODO: We may want to create factories for benchmark and machine
-            self.logger.debug('Benchmark model: %s' % self.args.name + '_model.py')
+            self.logger.debug('Benchmark model for %s' % self.args.name)
             self.benchmark_model = ModelLoader(self.args.name + '_model.py',
                                                'benchmark',
                                                self.root_path).load()
             self.benchmark_model.set_path(os.path.abspath(self.benchmark_path))
-            self.logger.info('Loaded benchmark model for %s' % self.args.name)
+            self.logger.info('Benchmark model loaded')
 
-            self.logger.debug('Machine model: %s' % self.args.machine_type + '_model.py')
+            self.logger.debug('Machine model for %s' % self.args.machine_type)
             self.machine_model = ModelLoader(self.args.machine_type + '_model.py',
                                              'machine',
                                              self.root_path).load()
-            self.logger.info('Loaded machine model for %s' % self.args.machine_type)
+            self.logger.info('Machine model loaded')
 
-            self.logger.debug('Compiler model: %s' % self.args.toolchain + '_model.py')
+            self.logger.debug('Compiler model for %s' % self.args.toolchain)
+            self.logger.debug('     compiler_path %s' % self.compiler_path)
             compiler_factory = CompilerFactory(self.args.toolchain,
                                                self.args.sftp_user,
                                                self.compiler_path)
             self.compiler_model = compiler_factory.getCompiler()
-            self.logger.info('Loaded compiler model for %s' % self.args.toolchain)
+            self.logger.info('Compiler model loaded')
         except ImportError as err:
             self.logger.error(err, True)
 

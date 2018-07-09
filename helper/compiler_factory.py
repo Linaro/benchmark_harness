@@ -32,27 +32,33 @@ class CompilerFactory(object):
         self.toolchain_extractpath = toolchain_extractpath
 
     def getCompiler(self):
-        """This is the method that will discriminate between downloading and
-        calling locally installed toolchain"""
+        """Gets a compiler from URL or system local"""
+        # TODO: Make this smarter, to account for:
+        #        * Local binary name (find sysroot)
+        #        * Local directory name (find sysroot, binaries)
+        #        * Local tarball (unpack, find sysroot, binaries)
+        #        * file:// URL, same as above
+        #        * Better URL check
+
         if 'sftp' in self.toolchain_url:
-            extracted_tar = self._sftpToolchain()
-            return self._fetchCompiler(extracted_tar)
-        elif self.toolchain_url.find('http') == 0 or self.toolchain_url.find('ftp') == 0:
-            extracted_tar = self._downloadToolchain()
-            return self._fetchCompiler(extracted_tar)
+            # TODO: This doesn't belong here
+            extracted_tar = self.__sftp_toolchain()
+            return self._fetch_compiler(extracted_tar)
+        elif '://' in self.toolchain_url:
+            # TODO: Assuming HTTP/FTP for now
+            self.filename = self.toolchain_url.split('/')[-1]
+            self.dirname = re.sub("\.(tar|tgz)\.?(gz|xz)?", "", self.filename)
+            self.base = os.path.join(self.toolchain_extractpath, self.dirname)
+            self.path = os.path.join(self.toolchain_extractpath, self.filename)
+            extracted_tar = self._download_toolchain()
+            return self._fetch_compiler(extracted_tar)
         else:
             return self._fetch_system(self.toolchain_url)
 
-    def _fetch_system(self, compiler):
-        """Fetch a locally installed toolchain registered with the shell"""
-        compiler_path = which(compiler)
-        if compiler_path is not None:
-            return self._getCompilerFromBinaries(compiler_path)
-        else:
-            raise ImportError('Compiler %s not installed' % compiler)
-
-    def _sftpToolchain(self):
+    def __sftp_toolchain(self):
         """Fetches the Toolchain via sftp"""
+
+        # TODO: This doesn't belong here
         if len(self.toolchain_url.split('/')) < 4:
             raise EnvironmentError('SFTP URL is not valid %s' %
                                    self.toolchain_url)
@@ -73,42 +79,49 @@ class CompilerFactory(object):
                                               sftp_user + sftp_ip +
                                               ':/' + sftp_filepath],
                                              stderr=subprocess.STDOUT, shell=True)
-            return self._extractTarball(sftp_filename)
+            return self._extract_tarball(sftp_filename)
 
-    def _extractTarball(self, filename):
-        before = os.listdir()
-        # We need to find out what the extracted dir is called
+    def _extract_tarball(self, filename):
+        """Extracts toolchain directory"""
+
         tarball = tarfile.open(filename)
-        tarball.extractall()
-        after = os.listdir()
-        filename = [x for x in after if x not in before]
-        # Substract the before list of directories to the after list
-        return filename[0]
+        tarball.extractall(self.toolchain_extractpath)
 
-    def _downloadToolchain(self):
-        """Downloads... toolchain !"""
-        with cd(self.toolchain_extractpath):
-            filename, headers = urlretrieve(self.toolchain_url)
-            return self._extractTarball(filename)
+        # TODO: self.toolchain_extractpath and self.base are disconnected
+        if not os.path.isdir(self.base):
+            raise ImportError('Toolchain directory name %s does not match' %
+                              self.base)
 
-    def _fetchCompiler(self, extracted_tar):
+    def _download_toolchain(self):
+        """Downloads toolchain tarball"""
+        filename, headers = urlretrieve(self.toolchain_url, self.path)
+
+        if not os.path.isfile(filename):
+            raise ImportError('Error downloading toolchain to %s' % filename)
+
+        return self._extract_tarball(filename)
+
+    def _fetch_compiler(self, extracted_tar):
         """Fetches the full path to the frontend executable"""
-        original_path = os.getcwd()
-        with cd(self.toolchain_extractpath):
-            with cd(extracted_tar):
-                for root, dirnames, _ in os.walk('.'):
-                    for dirname in dirnames:
-                        if dirname == 'bin':
-                            # Yes this is ugly
-                            with cd(original_path):
-                                return self._getCompilerFromBinaries(
-                                    os.path.join(self.toolchain_extractpath,
-                                                 extracted_tar, dirname))
-        raise ImportError('Frontend not found...')
 
-    def _getCompilerFromBinaries(self, bin_path):
-        """Loads each model class and calls it to check if the frontend is
-        theirs"""
+        for root, dirs, _ in os.walk(self.base):
+            if 'bin' in dirs:
+                return self._find_model(os.path.join(root, 'bin'))
+        raise ImportError('Compiler binary dir not found')
+
+    def _fetch_system(self, compiler):
+        """Identifies the system toolchain's full path"""
+
+        compiler_path = which(compiler)
+        if compiler_path is None:
+            raise ImportError('Compiler %s not installed' % compiler)
+
+        return self._find_model(compiler_path)
+
+    def _find_model(self, bin_path):
+        """Checks compiler models against binary dir"""
+
+        # TODO: Lift this to Model Loader
         original_path = os.getcwd()
         list_compiler_modules = [f for f in os.listdir('./models/compilers/')
                                  if re.match(r'.*\.py*', f)]
@@ -120,6 +133,7 @@ class CompilerFactory(object):
                     if loaded_model.check(bin_path):
                         return loaded_model
                 except ImportError as err:
+                    # TODO: Fix this with a proper check in Model Loader
                     pass
         raise ImportError('No corresponding module found for toolchain @ ' +
                           self.toolchain_url)
