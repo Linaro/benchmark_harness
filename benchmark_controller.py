@@ -19,11 +19,11 @@ import logging
 import coloredlogs
 from pathlib import Path
 
-from helper.compiler_factory import CompilerFactory
 from helper.model_loader import ModelLoader
 from helper.benchmark_logger import BenchmarkLogger
 from helper.command_output import CommandOutput
 
+from models.compilers.compiler_factory import CompilerFactory
 from models.compilers.compiler_model import CompilerModel
 from models.benchmarks.benchmark_model import BenchmarkModel
 from models.machines.machine_model import MachineModel
@@ -175,6 +175,7 @@ class BenchmarkController(object):
             self.logger.info('Compiler model loaded')
         except ImportError as err:
             self.logger.error(err, True)
+            raise
 
         self._build_complete_flags()
 

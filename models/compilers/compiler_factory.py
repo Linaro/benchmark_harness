@@ -24,7 +24,11 @@ from shutil import which
 
 
 class CompilerFactory(object):
-    """The Wonderful Factory of Compilers"""
+    """Fetch, prepare and setup compilers"""
+    # TODO: Separate this into sub-classes for each type:
+    #            * System compiler, by name
+    #            * Tarball compiler, by file, URL
+    #            * Directory compiler, by path
 
     def __init__(self, toolchain_url, sftp_user, toolchain_extractpath):
         self.toolchain_url = toolchain_url
@@ -34,10 +38,7 @@ class CompilerFactory(object):
     def getCompiler(self):
         """Gets a compiler from URL or system local"""
         # TODO: Make this smarter, to account for:
-        #        * Local binary name (find sysroot)
-        #        * Local directory name (find sysroot, binaries)
-        #        * Local tarball (unpack, find sysroot, binaries)
-        #        * file:// URL, same as above
+        #        * file:// URL, same as path
         #        * Better URL check
 
         if 'sftp' in self.toolchain_url:
