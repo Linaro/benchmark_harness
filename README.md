@@ -1,5 +1,5 @@
 # Benchmark Harness
-Harness to run multiple benchmarks in different machines with different compilers
+Harness to run benchmarks with options for different machines and different compilers
 
 ## Usage
 
@@ -13,7 +13,7 @@ This is a modular harness, so in order to run a benchmark, you need to add a mod
 
 Benchmarks modules need to know how to fetch it (git clone, wget, etc), build (using the compiler + special flags) and run (and how many times to run, etc).
 
-Machine modules are mostly structures with extra values for required compiler flags, pre/post benchmark logic and specific knowledge (for example modules to load, /sys and /proc handling, etc).
+Machine modules are mostly structures with extra values for required compiler flags, pre/post benchmark logic and specific knowledge (for example modules to load, /sys and /proc handling, etc. as well as uArch options, for example --mtune).
 
 Compiler modules need to either get a tarball and unpack it or use the system compiler. It also needs to know how to identify the compiler (ex. gcc vs clang) and if there are any special flags that need to be used.
 
