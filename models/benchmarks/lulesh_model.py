@@ -12,7 +12,7 @@
 """
 
 from models.benchmarks.BenchmarkModel import BenchmarkModel
-from executor.execute import *
+from executor.Execute import OutputParser
 import os
 import argparse
 

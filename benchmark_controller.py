@@ -19,18 +19,14 @@ import logging
 import coloredlogs
 from pathlib import Path
 
-from helper.ModelLoader import ModelLoader
 from helper.BenchmarkLogger import BenchmarkLogger
 from helper.CommandOutput import CommandOutput
 
 from models.compilers.CompilerFactory import CompilerFactory
-from models.compilers.CompilerModel import CompilerModel
 from models.benchmarks.BenchmarkFactory import BenchmarkFactory
-from models.benchmarks.BenchmarkModel import BenchmarkModel
 from models.machines.MachineFactory import MachineFactory
-from models.machines.MachineModel import MachineModel
-from executor.execute import run
-from executor.LinuxPerf import *
+from executor.Execute import Execute
+from executor.LinuxPerf import LinuxPerf
 
 
 class BenchmarkController(object):
@@ -177,8 +173,10 @@ class BenchmarkController(object):
         self._build_complete_flags()
 
     def _run_all(self, list_of_commands, perf=False):
-        """Runs and collects output and perf results (from stderr)"""
+        """Runs and collects output results"""
+        # TODO: We should add support for make and test parser plugins, too
 
+        # Group all outputs in a single list object
         output = CommandOutput()
 
         for cmd in list_of_commands:
@@ -186,21 +184,26 @@ class BenchmarkController(object):
                 self.logger.debug('Empty command, ignoring')
                 continue
 
-            self.logger.info('Running command : ' + str(cmd))
-            # TODO: Make sure we don't have a special case for perf
-            # This should be transparent to the user
             if perf:
-                # Passing benchmark plugin for stdout parsing
                 self.logger.debug('Executing with Linux Perf engine')
-
-                perf_parser = LinuxPerf(cmd, self.benchmark_model.get_plugin())
-                stdout, stderr = perf_parser.stat()
+                executor = LinuxPerf(cmd, self.benchmark_model.get_plugin())
             else:
-                stdout, stderr = run(cmd)
-                self.logger.info(stdout)
+                executor = Execute(cmd)
 
+            # Executes command, captures outputs
+            self.logger.info('Running command : ' + str(cmd))
+            stdout, stderr = executor.run()
             output.add(stdout, stderr)
-            self.logger.info('Execution complete. Output added to the list')
+
+            # Show outputs if not parsed, assuming this isn't benchmark results
+            if isinstance(stdout, str):
+                self.logger.info("Output:")
+                self.logger.info(stdout)
+            if isinstance(stderr, str):
+                self.logger.info("Errors:")
+                self.logger.info(stderr)
+
+            self.logger.info('Execution complete')
 
         return output
 

@@ -4,7 +4,7 @@
  Execute Commands, return out/err, accepts parser plugins
 
  Usage:
-  out, err = Execute.run(['myapp', '-flag', 'etc'], outp=Plugin, errp=None)
+  out, err = Execute(['myapp', '-flag', 'etc'], outp=Plugin, errp=None).run()
 
  Plugin: parses the output of a specific benchmark, returns a dict()
          passing None makes run() returns plain text as str()
@@ -13,8 +13,6 @@
 
 import subprocess
 import re
-
-#TODO: Make this into a class and have LinuxPerf derive from it
 
 class OutputParser:
     """Base class for all output (out/err) parsers that will be passed
@@ -48,30 +46,37 @@ class OutputParser:
                 data[field] = self.sanitise(match.group(1))
         return data
 
-def run(program, outp=None, errp=None):
-    """Execute Commands, return out/err, accepts parser plugins"""
-    # validate arguments
-    if program and not isinstance(program, list):
-        raise TypeError("Program needs to be a list of arguments")
-    if outp and not isinstance(outp, OutputParser):
-        raise TypeError("Output parser needs to derive from OutputParser")
-    if errp and not isinstance(errp, OutputParser):
-        raise TypeError("Error parser needs to derive from OutputParser")
+class Execute(object):
+    """Executes commands, captures output, parse with plugins"""
 
-    # Call the program
-    result = subprocess.run(program,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+    def __init__(self, program, outp=None, errp=None):
+        # validate arguments
+        if program and not isinstance(program, list):
+            raise TypeError("Program needs to be a list of arguments")
+        if outp and not isinstance(outp, OutputParser):
+            raise TypeError("Output parser needs to derive from OutputParser")
+        if errp and not isinstance(errp, OutputParser):
+            raise TypeError("Error parser needs to derive from OutputParser")
 
-    # Collect the results, parse if parser available
-    if outp:
-        stdout = outp.parse(result.stdout.decode('utf-8'))
-    else:
+        self.program = program
+        self.outp = outp
+        self.errp = errp
+
+    def run(self):
+        """Execute Commands, return out/err, accepts parser plugins"""
+
+        # Call the program, capturing stdout/stderr
+        result = subprocess.run(self.program,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+ 
+        # Collect the results, parse if parser available
         stdout = result.stdout.decode('utf-8')
-    if errp:
-        stderr = errp.parse(result.stderr.decode('utf-8'))
-    else:
+        if self.outp:
+            stdout = self.outp.parse(stdout)
         stderr = result.stderr.decode('utf-8')
-
-    # Return
-    return stdout, stderr
+        if self.errp:
+            stderr = self.errp.parse(stderr)
+ 
+        # Return
+        return stdout, stderr
