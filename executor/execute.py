@@ -14,6 +14,8 @@
 import subprocess
 import re
 
+#TODO: Make this into a class and have LinuxPerf derive from it
+
 class OutputParser:
     """Base class for all output (out/err) parsers that will be passed
        to the Execute class."""

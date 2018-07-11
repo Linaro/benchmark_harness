@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from models.compilers.compiler_model import CompilerModel
+from models.compilers.CompilerModel import CompilerModel
 
 class ModelImplementation(CompilerModel):
     def __init__(self):

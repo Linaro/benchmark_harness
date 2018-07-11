@@ -11,7 +11,7 @@
 
 """
 
-from models.benchmarks.benchmark_model import BenchmarkModel
+from models.benchmarks.BenchmarkModel import BenchmarkModel
 from executor.execute import *
 import os
 import argparse

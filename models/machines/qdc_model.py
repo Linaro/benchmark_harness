@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from models.machines.machine_model import MachineModel
+from models.machines.MachineModel import MachineModel
 
 class ModelImplementation(MachineModel):
     def __init__(self):

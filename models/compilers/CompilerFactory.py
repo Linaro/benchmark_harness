@@ -14,16 +14,13 @@
 import tarfile
 import os
 import re
-import importlib
 import subprocess
 from urllib.request import urlretrieve
-from pathlib import Path
 from helper.cd import cd
-from helper.model_loader import ModelLoader
+from models.ModelFactory import ModelFactory
 from shutil import which
 
-
-class CompilerFactory(object):
+class CompilerFactory(ModelFactory):
     """Fetch, prepare and setup compilers"""
     # TODO: Separate this into sub-classes for each type:
     #            * System compiler, by name
@@ -34,6 +31,7 @@ class CompilerFactory(object):
         self.toolchain_url = toolchain_url
         self.sftp_user = sftp_user
         self.toolchain_extractpath = toolchain_extractpath
+        super(CompilerFactory, self).__init__('compilers')
 
     def getCompiler(self):
         """Gets a compiler from URL or system local"""
@@ -118,23 +116,3 @@ class CompilerFactory(object):
             raise ImportError('Compiler %s not installed' % compiler)
 
         return self._find_model(compiler_path)
-
-    def _find_model(self, bin_path):
-        """Checks compiler models against binary dir"""
-
-        # TODO: Lift this to Model Loader
-        original_path = os.getcwd()
-        list_compiler_modules = [f for f in os.listdir('./models/compilers/')
-                                 if re.match(r'.*\.py*', f)]
-        for model in list_compiler_modules:
-            if model.find('_model') != -1:
-                try:
-                    loaded_model = ModelLoader(
-                        model, 'compiler', original_path).load()
-                    if loaded_model.check(bin_path):
-                        return loaded_model
-                except ImportError as err:
-                    # TODO: Fix this with a proper check in Model Loader
-                    pass
-        raise ImportError('No corresponding module found for toolchain @ ' +
-                          self.toolchain_url)

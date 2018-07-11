@@ -19,16 +19,18 @@ import logging
 import coloredlogs
 from pathlib import Path
 
-from helper.model_loader import ModelLoader
-from helper.benchmark_logger import BenchmarkLogger
-from helper.command_output import CommandOutput
+from helper.ModelLoader import ModelLoader
+from helper.BenchmarkLogger import BenchmarkLogger
+from helper.CommandOutput import CommandOutput
 
-from models.compilers.compiler_factory import CompilerFactory
-from models.compilers.compiler_model import CompilerModel
-from models.benchmarks.benchmark_model import BenchmarkModel
-from models.machines.machine_model import MachineModel
+from models.compilers.CompilerFactory import CompilerFactory
+from models.compilers.CompilerModel import CompilerModel
+from models.benchmarks.BenchmarkFactory import BenchmarkFactory
+from models.benchmarks.BenchmarkModel import BenchmarkModel
+from models.machines.MachineFactory import MachineFactory
+from models.machines.MachineModel import MachineModel
 from executor.execute import run
-from executor.linux_perf import *
+from executor.LinuxPerf import *
 
 
 class BenchmarkController(object):
@@ -152,18 +154,13 @@ class BenchmarkController(object):
         """Load compiler/benchmark/machine models"""
 
         try:
-            # TODO: We may want to create factories for benchmark and machine
             self.logger.debug('Benchmark model for %s' % self.args.name)
-            self.benchmark_model = ModelLoader(self.args.name + '_model.py',
-                                               'benchmark',
-                                               self.root_path).load()
+            self.benchmark_model = BenchmarkFactory(self.args.name).getBenchmark()
             self.benchmark_model.set_path(os.path.abspath(self.benchmark_path))
             self.logger.info('Benchmark model loaded')
 
             self.logger.debug('Machine model for %s' % self.args.machine_type)
-            self.machine_model = ModelLoader(self.args.machine_type + '_model.py',
-                                             'machine',
-                                             self.root_path).load()
+            self.machine_model = MachineFactory(self.args.machine_type).getMachine()
             self.logger.info('Machine model loaded')
 
             self.logger.debug('Compiler model for %s' % self.args.toolchain)
