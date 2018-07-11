@@ -197,10 +197,10 @@ class BenchmarkController(object):
 
             # Show outputs if not parsed, assuming this isn't benchmark results
             if isinstance(stdout, str):
-                self.logger.info("Output:")
+                self.logger.info("Stdout:")
                 self.logger.info(stdout)
             if isinstance(stderr, str):
-                self.logger.info("Errors:")
+                self.logger.info("Stderr:")
                 self.logger.info(stderr)
 
             self.logger.info('Execution complete')

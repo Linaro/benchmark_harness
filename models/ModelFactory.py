@@ -18,11 +18,8 @@ class ModelFactory(object):
             raise TypeError('Model type has to be a string')
 
         self.root = os.path.dirname(os.path.realpath(__file__))
-        print ('== root: ' + self.root)
         self.model_type = model_type
-        print ('== type: ' + self.model_type)
         self.models_dir = os.path.join(self.root, self.model_type)
-        print ('==  dir: ' + self.models_dir)
 
     def _load_model(self, name):
         if name is None:
@@ -35,7 +32,6 @@ class ModelFactory(object):
         filename = os.path.join(self.models_dir, name)
         if not os.path.isfile(filename):
             return None
-        print ('====  filename: ' + filename)
 
         return ModelLoader(filename).load()
 
@@ -44,7 +40,6 @@ class ModelFactory(object):
 
         for model in [f for f in os.listdir(self.models_dir)
                         if re.match(r'.*\.py*', f)]:
-            print ('=== model: ' + model)
             loaded_model = self._load_model(model)
             if loaded_model and loaded_model.check(condition):
                 return loaded_model
