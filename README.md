@@ -1,7 +1,7 @@
 # Benchmark Harness
 Harness to run benchmarks with options for different machines and different compilers
 
-## Usage
+## Modular Design
 
 The benchmark controller receives all parameters via command line options, which define:
  * The name of the benchmark
@@ -18,6 +18,20 @@ Machine modules are mostly structures with extra values for required compiler fl
 Compiler modules need to either get a tarball and unpack it or use the system compiler. It also needs to know how to identify the compiler (ex. gcc vs clang) and if there are any special flags that need to be used.
 
 The controller will then get the benchmark and compiler, build the sources, run as many times and as many combination of flags  as necessary and bundle the results into a directory, which will then be copied into a safe place (TBD).
+
+## Usage
+
+Assuming the modules exist, the four mandatory command line options are:
+ * Benchmark name: ex. "lulesh", "himeno", "spec2006", etc.
+ * Machine name: ex. "x86_64", "aarch64", "myawesomepc", etc.
+ * Toolchain name: ex. "gcc", "clang", "http://releases.llvm.org/6.0.0/clang+llvm-6.0.0-aarch64-linux-gnu.tar.xz", etc
+ * Benchmark root directory: ex. "--benchmark-root=/tmp/workspace/"
+
+With those four options, the harness will:
+  1. If necessary, download the compiler (or use the system one, if you just put a name), unpack, get it ready
+  2. Download the benchmark, unpack
+  3. Build it with the refered compiler and the options that the models require
+  4. Run the compiler, multiple times if necessary, and parse the results (out and err) into yaml files
 
 ## Extending
 
