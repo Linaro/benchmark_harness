@@ -6,7 +6,7 @@
 import os
 import re
 import importlib
-from helper.ModelLoader import ModelLoader
+from models.ModelLoader import ModelLoader
 
 class ModelFactory(object):
     """Identify and return the correct machine model"""
