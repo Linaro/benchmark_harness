@@ -16,7 +16,6 @@ import os
 import re
 import subprocess
 from urllib.request import urlretrieve
-from helper.cd import cd
 from models.ModelFactory import ModelFactory
 from shutil import which
 
