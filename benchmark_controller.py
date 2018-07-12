@@ -162,7 +162,6 @@ class BenchmarkController(object):
             self.logger.debug('Compiler model for %s' % self.args.toolchain)
             self.logger.debug('     compiler_path %s' % self.compiler_path)
             compiler_factory = CompilerFactory(self.args.toolchain,
-                                               self.args.sftp_user,
                                                self.compiler_path)
             self.compiler_model = compiler_factory.getCompiler()
             self.logger.info('Compiler model loaded')
@@ -249,8 +248,6 @@ if __name__ == '__main__':
                         help='The type of the machine to run the benchmark on')
     parser.add_argument('toolchain', type=str,
                         help='The url/name of the toolchain to compile the benchmark')
-    parser.add_argument('--sftp-user', type=str, default='',
-                        help='The sftp user to connect to the sftp server with')
     parser.add_argument('--compiler-flags', type=str, default='',
                         help='The extra compiler flags')
     parser.add_argument('--link-flags', type=str, default='',
