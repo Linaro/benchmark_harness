@@ -19,6 +19,19 @@ Compiler modules need to either get a tarball and unpack it or use the system co
 
 The controller will then get the benchmark and compiler, build the sources, run as many times and as many combination of flags  as necessary and bundle the results into a directory, which will then be copied into a safe place (TBD).
 
+## Install & Try
+
+To install:
+
+ 1. Clone this repository
+ 2. Install requirements: python3 -m pip install -r requirements.txt
+ 3. Run the harness: python3 benchmark_controller.py -i 5 --benchmark_root=. lulesh aarch64 gcc
+ 4. Collect the results: cat ./lulesh_gcc__aarch64_/results/*
+
+The file with .out will have an aggregation of the 5 results into a yaml format.
+
+The file with .err will have an aggregation of the 5 perf results into a yaml format.
+
 ## Usage
 
 Assuming the modules exist, the four mandatory command line options are:
