@@ -25,7 +25,7 @@ To install:
 
  1. Clone this repository
  2. Install requirements: python3 -m pip install -r requirements.txt
- 3. Run the harness: python3 benchmark_controller.py -i 5 --benchmark_root=. lulesh aarch64 gcc
+ 3. Run the harness: python3 benchmark_controller.py -v -i 5 --benchmark_root=. lulesh aarch64 gcc
  4. Collect the results: cat ./lulesh_gcc__aarch64_/results/*
 
 The file with .out will have an aggregation of the 5 results into a yaml format.
