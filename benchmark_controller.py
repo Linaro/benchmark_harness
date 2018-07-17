@@ -18,6 +18,7 @@ import yaml
 import logging
 import coloredlogs
 from pathlib import Path
+import shutil
 
 from helper.BenchmarkLogger import BenchmarkLogger
 from helper.CommandOutput import CommandOutput
@@ -45,17 +46,20 @@ class BenchmarkController(object):
     def _make_unique_name(self):
         """Unique name for the binary and results files"""
 
-        identity = str(
-            self.args.name + '_' +
-            (self.args.toolchain.rsplit('/', 1)[-1])[:24] + '_' +
-            self.args.compiler_flags.replace(" ", "") + '_' +
-            self.args.machine_type + '_' +
-            self.args.benchmark_options.replace(" ", ""))
+        # Format: bname - arch - compiler - flags - id
+        sep = " - "
+        identity = sep.join([
+            self.args.name,
+            self.args.machine_type,
+            (self.args.toolchain.rsplit('/', 1)[-1])[:24],
+            self.args.compiler_flags,
+            self.args.benchmark_options,
+            repr(self.args.unique_id)])
 
-        self.binary_name = re.sub("[^a-zA-Z0-9_]+", "", identity).lower()
-        self.report_name = identity
+        # Clean up invalid chars
+        self.binary_name = re.sub("[^a-zA-Z0-9_-]+", "", identity).lower()
 
-        self.logger.info('Unique name: %s' % self.report_name)
+        self.logger.info('Unique name: %s' % identity)
 
     def _build_complete_flags(self):
         """Joins all cpmopile and link flags from all sources into one"""
@@ -115,7 +119,7 @@ class BenchmarkController(object):
             raise TypeError('%s should be a directory' % self.results_path)
 
         # Print both stdout and stderr
-        base_path = self.results_path + '/' + self.report_name
+        base_path = self.results_path + '/' + self.binary_name
         with open(base_path + '.out', 'w') as stdout:
             yaml.dump(out, stdout, default_flow_style=False)
         with open(base_path + '.err', 'w') as stderr:
@@ -131,18 +135,25 @@ class BenchmarkController(object):
         self.logger.debug('Binary name: %s' % self.binary_name)
         self.unique_root_path = os.path.join(self.args.benchmark_root,
                                              self.binary_name)
-        os.mkdir(self.unique_root_path)
         self.logger.info('Unique root path: %s' % self.unique_root_path)
 
-        self.compiler_path = os.path.join(self.unique_root_path, 'compiler/')
+        # If wipe, remove everything
+        if self.args.wipe and os.path.exists(self.unique_root_path):
+            self.logger.info('Wiping %s' % self.unique_root_path)
+            shutil.rmtree(self.unique_root_path)
+
+        # Now, create the whole tree
+        Path(self.unique_root_path).mkdir(parents=True, exist_ok=True)
+
+        self.compiler_path = os.path.join(self.unique_root_path, 'compiler')
         os.mkdir(self.compiler_path)
         self.logger.debug('Compiler path: %s' % self.compiler_path)
 
-        self.benchmark_path = os.path.join(self.unique_root_path, 'benchmark/')
+        self.benchmark_path = os.path.join(self.unique_root_path, 'benchmark')
         os.mkdir(self.benchmark_path)
         self.logger.debug('Benchmark path: %s' % self.benchmark_path)
 
-        self.results_path = os.path.join(self.unique_root_path, 'results/')
+        self.results_path = os.path.join(self.unique_root_path, 'results')
         os.mkdir(self.results_path)
         self.logger.debug('Results path: %s' % self.results_path)
 
@@ -242,12 +253,26 @@ class BenchmarkController(object):
 if __name__ == '__main__':
     """This is the point of entry of our application, not much logic here"""
     parser = argparse.ArgumentParser(description='Benchmark Harness')
+
+    # Required arguments: benchmark, machine type, toolchain
     parser.add_argument('name', metavar='benchmark_name', type=str,
                         help='The name of the benchmark to run')
     parser.add_argument('machine_type', type=str,
                         help='The type of the machine to run the benchmark on')
     parser.add_argument('toolchain', type=str,
                         help='The url/name of the toolchain to compile the benchmark')
+
+    # Harness optional: root dir, unique id, verbose
+    parser.add_argument('--unique-id', type=str, default=os.getpid(),
+                        help='Unique ID (ex. run number, sequential)')
+    parser.add_argument('--wipe', type=bool, default=False,
+                        help='Wipe benchmark root directory before run')
+    parser.add_argument('--benchmark-root', type=str, default='./runs',
+                        help='The benchmark root directory')
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help='The verbosity of logging output')
+
+    # Extra flags
     parser.add_argument('--compiler-flags', type=str, default='',
                         help='The extra compiler flags')
     parser.add_argument('--link-flags', type=str, default='',
@@ -260,11 +285,8 @@ if __name__ == '__main__':
                         help='The benchmark specific extra dependencies for the build')
     parser.add_argument('--benchmark-run-deps', type=str, default='',
                         help='The benchmark specific extra dependencies for the run')
-    parser.add_argument('--benchmark-root', type=str, required=True,
-                        help='The benchmark root directory')
-    parser.add_argument('-v', '--verbose', action='count', default=0,
-                        help='The verbosity of logging output')
     args = parser.parse_args()
 
+    # Start the controller
     controller = BenchmarkController(parser, args)
     controller.main()
