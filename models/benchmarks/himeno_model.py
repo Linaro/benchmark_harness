@@ -76,7 +76,7 @@ class ModelImplementation(BenchmarkModel):
                         complete_link_flags, binary_name, benchmark_build_vars):
         """Builds the benchmark using the base + extra flags"""
         if benchmark_build_vars == '':
-            benchmark_build_vars = 'MODEL=SMALL'
+            benchmark_build_vars = 'MODEL=LARGE'
         build_cmd = []
         make_cmd = []
         make_cmd.append('make')

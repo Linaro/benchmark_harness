@@ -90,10 +90,16 @@ class ModelImplementation(BenchmarkModel):
         binary_path = os.path.join(self.benchmark_rootpath, self.name, binary_name)
         run_cmds = []
         run_args = self.parse_run_args(extra_runflags)
+        # Default to -s 50, further -s options will override
+        # TODO: Add user flags, hoist to base class
+        args = ['-s', '50']
+
+        # TODO: isdigit valiation should have happened at setting, not reading
+        # TODO: multiple iteration should be hoisted to base class
         if (run_args.iterations).isdigit():
             for i in range(0, int(run_args.iterations)):
-                run_cmd=[]
-                run_cmd.append(binary_path)
+                run_cmd= [ binary_path ]
+                run_cmd.extend(args)
                 run_cmds.append(run_cmd)
 
         return run_cmds
