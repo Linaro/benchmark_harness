@@ -9,6 +9,7 @@
     Usage: benchmark_controller.py --usage
 """
 
+import sys
 import os
 import argparse
 import subprocess
@@ -87,33 +88,6 @@ class BenchmarkController(object):
         self.binary_name = re.sub("[^a-zA-Z0-9_-]+", "", identity).lower()
 
         self.logger.info('Unique name: %s' % identity)
-
-    def _output_logs(self, benchmark_output):
-        """Print out the results"""
-
-        out = benchmark_output.get_list_out()
-        err = benchmark_output.get_list_err()
-
-        # Make sure we have the right type of results
-        # Must be a list of either str or dict
-        if out and not \
-           (isinstance(out[0], str) or isinstance(out[0], dict)):
-            raise TypeError('out should be a list of string or dict')
-        if err and not \
-           (isinstance(err[0], str) or isinstance(err[0], dict)):
-            raise TypeError('err should be a list of string or dict')
-        if not os.path.isdir(self.results_path):
-            raise TypeError('%s should be a directory' % self.results_path)
-
-        # Print both stdout and stderr
-        base_path = self.results_path + '/' + self.binary_name
-        with open(base_path + '.out', 'w') as stdout:
-            yaml.dump(out, stdout, default_flow_style=False)
-        with open(base_path + '.err', 'w') as stderr:
-            yaml.dump(err, stderr, default_flow_style=False)
-
-        self.logger.info('Output logs at: %s.out' % base_path)
-        self.logger.info(' Error logs at: %s.err' % base_path)
 
     def _make_dirs(self):
         """Create the directory at the supplied benchmark root"""
@@ -199,6 +173,46 @@ class BenchmarkController(object):
 
         return output
 
+    def _validate(self, benchmark_output):
+        """Validate the results"""
+
+        out = benchmark_output.get_list_out()
+        if out and not isinstance(out[0], dict):
+            raise TypeError('out should be a list of dict')
+
+        for o in out:
+            if not self.benchmark_model.validate(o):
+                self.logger.error("Validation failed. Check output.")
+                return False
+
+        self.logger.info("Validation succeeded")
+        return True
+
+    def _output_logs(self, benchmark_output):
+        """Print out the results"""
+
+        out = benchmark_output.get_list_out()
+        err = benchmark_output.get_list_err()
+
+        # Make sure we have the right type of results
+        # Must be a list of dictionaries
+        if out and not isinstance(out[0], dict):
+            raise TypeError('out should be a list of dict')
+        if err and not isinstance(err[0], dict):
+            raise TypeError('err should be a list of dict')
+        if not os.path.isdir(self.results_path):
+            raise TypeError('%s should be a directory' % self.results_path)
+
+        # Print both stdout and stderr
+        base_path = self.results_path + '/' + self.binary_name
+        with open(base_path + '.out', 'w') as stdout:
+            yaml.dump(out, stdout, default_flow_style=False)
+        with open(base_path + '.err', 'w') as stderr:
+            yaml.dump(err, stderr, default_flow_style=False)
+
+        self.logger.info('Output logs at: %s.out' % base_path)
+        self.logger.info(' Error logs at: %s.err' % base_path)
+
     def main(self):
         """Main driver - downloads, unzip, compile, run, collect results"""
 
@@ -229,10 +243,13 @@ class BenchmarkController(object):
         output = self._run_all(self.benchmark_model.run(self.args.run_flags),
                                perf=True)
 
+        self.logger.info(' ++ Validating Results ++')
+        valid = self._validate(output)
+
         self.logger.info(' ++ Collecting Results ++')
         self._output_logs(output)
 
-        return 0
+        return valid
 
 
 if __name__ == '__main__':
@@ -272,4 +289,6 @@ if __name__ == '__main__':
 
     # Start the controller
     controller = BenchmarkController(parser, args)
-    controller.main()
+    success = controller.main()
+    if not success:
+        sys.exit(1)

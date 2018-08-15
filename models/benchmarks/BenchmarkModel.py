@@ -24,6 +24,9 @@ class BenchmarkModel(object):
         self.iterations = 1
         self.size = 1
 
+        # Validation checks dictionary (compare to results)
+        self.checks = dict()
+
     ## CORE
     def prepare(self, root_path, compiler, iterations, size):
         """Prepares envrionment for running the benchmark
@@ -91,6 +94,22 @@ class BenchmarkModel(object):
             run_cmds.append(run_cmd)
 
         return run_cmds
+
+    def validate(self, results):
+        """Validate the run by investigating the results"""
+
+        # Default cases
+        if not self.checks:
+            return True
+        if not isinstance(results, dict):
+            raise TypeError('Results must be dictionary to validate')
+
+        # Check required fields' values
+        for key in self.checks:
+            if key not in results or results[key] != self.checks[key]:
+                return False
+        return True
+
 
     ## HELPERS
     def get_parser(self):

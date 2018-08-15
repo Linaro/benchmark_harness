@@ -51,19 +51,25 @@ class ModelImplementation(BenchmarkModel):
 
         # Lulesh specific flags based on options
         if (self.size >= 3):
-            # Final Origin Energy: 1.482403e+06
+            self.checks = {'FinalEnergy': '1.482403e+06'}
             self.run_flags += '-s 90'
         elif (self.size == 2):
-            # Final Origin Energy: 5.124778e+05
+            self.checks = {'FinalEnergy': '5.124778e+05'}
             self.run_flags += '-s 50'
         else:
-            # Final Origin Energy: 2.720531e+04
+            self.checks = {'FinalEnergy': '2.720531e+04'}
             self.run_flags += '-s 10'
 
         prepare_cmds = []
         prepare_run_cmd = ['git', 'clone', self.benchmark_url, self.root_path]
         prepare_cmds.append(prepare_run_cmd)
         return prepare_cmds
+
+    def run(self, extra_run_flags):
+        # If users are changing the size to non-standard, ignore validate
+        if '-s' in extra_run_flags.split():
+            self.checks = None
+        return super().run(extra_run_flags)
 
     def get_plugin(self):
         """Returns the plugin to parse the results"""
