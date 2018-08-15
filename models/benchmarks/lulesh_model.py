@@ -40,69 +40,30 @@ class ModelImplementation(BenchmarkModel):
     def __init__(self):
         super().__init__()
         self.name = 'lulesh'
-        self.base_runflags = ''
-        self.base_compileflags = '-DUSE_MPI=0 -fopenmp'
-        self.base_linkflags = '-O3 -fopenmp'
-        self.base_build_deps = ''
-        self.base_run_deps = ''
+        self.executable = 'lulesh2.0'
+        self.compiler_flags = '-DUSE_MPI=0 -fopenmp'
+        self.linker_flags = '-fopenmp'
+        self.size = 2
         self.benchmark_url = 'https://github.com/BaptisteGerondeau/LULESH.git'
 
-    def prepare_build_benchmark(self, extra_deps):
-        """Prepares Environment for building and running the benchmark
-        This entitles : installing dependencies, fetching benchmark code
-        Can use Ansible to do this platform independantly and idempotently"""
+    def prepare(self, root_path, compilers_dict, iterations, size):
+        super().prepare(root_path, compilers_dict, iterations, size)
+
+        # Lulesh specific flags based on options
+        if (self.size >= 3):
+            # Final Origin Energy: 1.482403e+06
+            self.run_flags += '-s 90'
+        elif (self.size == 2):
+            # Final Origin Energy: 5.124778e+05
+            self.run_flags += '-s 50'
+        else:
+            # Final Origin Energy: 2.720531e+04
+            self.run_flags += '-s 10'
+
         prepare_cmds = []
-        prepare_run_cmd = ['git', '-C', self.benchmark_rootpath, 'clone', self.benchmark_url, self.name]
+        prepare_run_cmd = ['git', 'clone', self.benchmark_url, self.root_path]
         prepare_cmds.append(prepare_run_cmd)
         return prepare_cmds
-
-    def prepare_run_benchmark(self, extra_deps, compilers_dict):
-        """Prepares envrionment for running the benchmark
-        This entitles : fetching the benchmark and preparing
-        for running it"""
-        prepare_cmds = [[]]
-        if 'LD_LIBRARY_PATH' in os.environ:
-            os.environ['LD_LIBRARY_PATH'] += compilers_dict['lib']
-        else:
-            os.environ['LD_LIBRARY_PATH'] = compilers_dict['lib']
-        return prepare_cmds
-
-    def build_benchmark(self, compilers_dict, complete_compile_flags,
-                        complete_link_flags, binary_name, benchmak_build_vars):
-        """Builds the benchmark using the base + extra flags"""
-        build_cmd = []
-        make_cmd = []
-        make_cmd.append('make')
-        make_cmd.append('-C')
-        make_cmd.append(os.path.join(self.benchmark_rootpath,
-                                            self.name))
-        make_cmd.append('CXX=' + compilers_dict['cxx'])
-        make_cmd.append('CC=' + compilers_dict['cc'])
-        make_cmd.append('FC=' + compilers_dict['fortran'])
-        make_cmd.append('CXXFLAGS=' + complete_compile_flags)
-        make_cmd.append('LDFLAGS=' + complete_link_flags)
-        make_cmd.append('LULESH_EXEC="' + binary_name + '"')
-        build_cmd.append(make_cmd)
-        return build_cmd
-
-    def run_benchmark(self, binary_name, extra_runflags):
-        """Runs the benchmarks using the base + extra flags"""
-        binary_path = os.path.join(self.benchmark_rootpath, self.name, binary_name)
-        run_cmds = []
-        run_args = self.parse_run_args(extra_runflags)
-        # Default to -s 50, further -s options will override
-        # TODO: Add user flags, hoist to base class
-        args = ['-s', '50']
-
-        # TODO: isdigit valiation should have happened at setting, not reading
-        # TODO: multiple iteration should be hoisted to base class
-        if (run_args.iterations).isdigit():
-            for i in range(0, int(run_args.iterations)):
-                run_cmd= [ binary_path ]
-                run_cmd.extend(args)
-                run_cmds.append(run_cmd)
-
-        return run_cmds
 
     def get_plugin(self):
         """Returns the plugin to parse the results"""
