@@ -39,9 +39,36 @@ class BenchmarkController(object):
         self.root_path = os.getcwd()
         self.logger = BenchmarkLogger(logging.getLogger(__name__), self.parser,
                                       self.args.verbose)
+
+        self._auto_detect()
+
         self._make_unique_name()
 
         self.logger.info('Benchmark Controller initialised')
+
+    def _auto_detect(self):
+        """Detect machine_type and compiler if empty"""
+        if not self.args.machine_type:
+            out, err = Execute(['uname', '-m']).run()
+            if err:
+                msg = "'uname -m' error: [" + err + "]"
+                raise RuntimeError("Error auto-detecting machine type: " + msg)
+            if not out:
+                raise RuntimeError("Unable to detect machine type with uname")
+            self.args.machine_type = out.strip()
+            self.logger.info('Autodetected arch: %s' % self.args.machine_type)
+
+        if not self.args.toolchain:
+            for comp in ['gcc', 'clang']:
+                out, err = Execute(['which', comp]).run()
+                if err or not out:
+                    continue
+                self.args.toolchain = comp
+                self.logger.info('Autodetected compiler: %s' % comp)
+                return
+
+            if not self.args.toolchain:
+                raise RuntimeError("Error auto-detecting compiler: " + err)
 
     def _make_unique_name(self):
         """Unique name for the binary and results files"""
@@ -254,15 +281,15 @@ if __name__ == '__main__':
     """This is the point of entry of our application, not much logic here"""
     parser = argparse.ArgumentParser(description='Benchmark Harness')
 
-    # Required arguments: benchmark, machine type, toolchain
+    # Required argument: benchmark name (must have a model implemented)
     parser.add_argument('name', metavar='benchmark_name', type=str,
                         help='The name of the benchmark to run')
-    parser.add_argument('machine_type', type=str,
-                        help='The type of the machine to run the benchmark on')
-    parser.add_argument('toolchain', type=str,
-                        help='The url/name of the toolchain to compile the benchmark')
 
     # Harness optional: root dir, unique id, verbose
+    parser.add_argument('--machine_type', type=str,
+                        help='The type of the machine to run the benchmark on')
+    parser.add_argument('--toolchain', type=str,
+                        help='The url/name of the toolchain to compile the benchmark')
     parser.add_argument('--unique-id', type=str, default=os.getpid(),
                         help='Unique ID (ex. run number, sequential)')
     parser.add_argument('--wipe', type=bool, default=False,
