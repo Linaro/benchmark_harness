@@ -48,13 +48,22 @@ class ModelImplementation(BenchmarkModel):
 
         # Himeno specific flags based on options
         if (self.size >= 3):
-            #self.checks = {'gosa': '4.882812e-04'}
+            # AArch64: 7.416879e-04
+            # x86_64: 4.882812e-04
+            self.checks = {'gosa': lambda x: x == '7.416879e-04' or
+                                             x == '4.882812e-04' }
             self.make_flags += 'MODEL=LARGE'
         elif (self.size == 2):
-            #self.checks = {'gosa': '1.245321e-03'}
+            # AArch64: 1.245335e-03
+            # x86_64: 1.245321e-03
+            self.checks = {'gosa': lambda x: x == '1.245335e-03' or
+                                             x == '1.245321e-03' }
             self.make_flags += 'MODEL=MIDDLE'
         else:
-            #self.checks = {'gosa': '1.688694e-03'}
+            # AArch64: 1.688540e-03
+            # x86_64: 1.688694e-03
+            self.checks = {'gosa': lambda x: x == '1.688540e-03' or
+                                             x == '1.688694e-03' }
             self.make_flags += 'MODEL=SMALL'
 
         # Download the benchmark, unzip

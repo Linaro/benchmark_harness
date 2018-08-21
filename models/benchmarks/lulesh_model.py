@@ -51,13 +51,13 @@ class ModelImplementation(BenchmarkModel):
 
         # Lulesh specific flags based on options
         if (self.size >= 3):
-            self.checks = {'FinalEnergy': '1.482403e+06'}
+            self.checks = {'FinalEnergy': lambda x: x == '1.482403e+06'}
             self.run_flags += '-s 90'
         elif (self.size == 2):
-            self.checks = {'FinalEnergy': '5.124778e+05'}
+            self.checks = {'FinalEnergy': lambda x: x == '5.124778e+05'}
             self.run_flags += '-s 50'
         else:
-            self.checks = {'FinalEnergy': '2.720531e+04'}
+            self.checks = {'FinalEnergy': lambda x: x == '2.720531e+04'}
             self.run_flags += '-s 10'
 
         prepare_cmds = []

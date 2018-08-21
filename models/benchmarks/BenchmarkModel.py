@@ -106,7 +106,7 @@ class BenchmarkModel(object):
 
         # Check required fields' values
         for key in self.checks:
-            if key not in results or results[key] != self.checks[key]:
+            if key not in results or not self.checks[key](results[key]):
                 return False
         return True
 
