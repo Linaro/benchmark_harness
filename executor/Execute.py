@@ -70,13 +70,17 @@ class Execute(object):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
  
-        # Collect the results, parse if parser available
+        # Collect stdout, parse if parser available
         stdout = result.stdout.decode('utf-8')
         if self.outp:
             stdout = self.outp.parse(stdout)
+        result.stdout = stdout
+
+        # Collect stderr, parse if parser available
         stderr = result.stderr.decode('utf-8')
         if self.errp:
             stderr = self.errp.parse(stderr)
+        result.stderr = stderr
  
         # Return
-        return stdout, stderr
+        return result

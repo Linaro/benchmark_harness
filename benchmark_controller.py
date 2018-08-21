@@ -15,21 +15,18 @@ import argparse
 import subprocess
 import re
 import importlib
-import yaml
-import logging
-import coloredlogs
 from pathlib import Path
 import shutil
 
 from helper.BenchmarkLogger import BenchmarkLogger
-from helper.CommandOutput import CommandOutput
 
 from models.compilers.CompilerFactory import CompilerFactory
 from models.benchmarks.BenchmarkFactory import BenchmarkFactory
 from models.machines.MachineFactory import MachineFactory
+
 from executor.Execute import Execute
 from executor.LinuxPerf import LinuxPerf
-
+from executor.CompletedProcessList import CompletedProcessList
 
 class BenchmarkController(object):
     """Point of entry of the benchmark harness application"""
@@ -38,7 +35,7 @@ class BenchmarkController(object):
         self.parser = argparse_parser
         self.args = argparse_args
         self.root_path = os.getcwd()
-        self.logger = BenchmarkLogger(logging.getLogger(__name__), self.parser,
+        self.logger = BenchmarkLogger(__name__, self.parser,
                                       self.args.verbose)
 
         self._auto_detect()
@@ -50,26 +47,26 @@ class BenchmarkController(object):
     def _auto_detect(self):
         """Detect machine_type and compiler if empty"""
         if not self.args.machine_type:
-            out, err = Execute(['uname', '-m']).run()
-            if err:
-                msg = "'uname -m' error: [" + err + "]"
+            result = Execute(['uname', '-m']).run()
+            if result.returncode:
+                msg = "'uname -m' error: [" + result.stderr + "]"
                 raise RuntimeError("Error auto-detecting machine type: " + msg)
-            if not out:
+            if not result.stdout:
                 raise RuntimeError("Unable to detect machine type with uname")
-            self.args.machine_type = out.strip()
+            self.args.machine_type = result.stdout.strip()
             self.logger.info('Autodetected arch: %s' % self.args.machine_type)
 
         if not self.args.toolchain:
             for comp in ['gcc', 'clang']:
-                out, err = Execute(['which', comp]).run()
-                if err or not out:
+                result = Execute(['which', comp]).run()
+                if result.stderr or not result.stdout:
                     continue
                 self.args.toolchain = comp
                 self.logger.info('Autodetected compiler: %s' % comp)
                 return
 
             if not self.args.toolchain:
-                raise RuntimeError("Error auto-detecting compiler: " + err)
+                raise RuntimeError("Error auto-detecting compiler: " + result.stderr)
 
     def _make_unique_name(self):
         """Unique name for the binary and results files"""
@@ -144,8 +141,8 @@ class BenchmarkController(object):
         """Runs and collects output results"""
         # TODO: We should add support for make and test parser plugins, too
 
-        # Group all outputs in a single list object
-        output = CommandOutput()
+        # Group all results in a single list object
+        results = CompletedProcessList()
 
         for cmd in list_of_commands:
             if not cmd:
@@ -158,57 +155,65 @@ class BenchmarkController(object):
             else:
                 executor = Execute(cmd)
 
-            # Executes command, captures outputs
+            # Executes command, captures results
             self.logger.info('Running command : ' + str(cmd))
-            stdout, stderr = executor.run()
-            output.add(stdout, stderr)
+            result = executor.run()
+            results.append(result)
 
-            # Show outputs if not parsed, assuming this isn't benchmark results
-            if isinstance(stdout, str) and stdout:
-                self.logger.info("Stdout:")
-                self.logger.info(stdout)
-            if isinstance(stderr, str) and stderr:
-                self.logger.info("Stderr:")
-                self.logger.info(stderr)
+        return results
 
-        return output
+    def _check_results(self, results, public=False):
+        out = results.stdout()
+        err = results.stderr()
+        ret = results.returncode
 
-    def _validate(self, benchmark_output):
-        """Validate the results"""
+        if out and public:
+            self.logger.info("Stdout:")
+            self.logger.info(out)
+        if err and public:
+            self.logger.info("Stderr:")
+            self.logger.info(err)
 
-        out = benchmark_output.get_list_out()
-        if out and not isinstance(out[0], dict):
-            raise TypeError('out should be a list of dict')
+        if ret != 0:
+            msg = "Execution error"
+            if not public:
+                msg += " " + err
+            raise RuntimeError(msg)
 
-        for o in out:
-            if not self.benchmark_model.validate(o):
+    def _validate(self, result):
+        """Validate the already parsed benchmark results"""
+
+        if result and not isinstance(result, CompletedProcessList):
+            raise TypeError('result should be a list')
+        if result[0].stdout and not isinstance(result[0].stdout, dict):
+            raise TypeError('result element should be a dict')
+
+        for res in result:
+            if not self.benchmark_model.validate(res.stdout):
                 self.logger.error("Validation failed. Check output.")
                 return False
 
         self.logger.info("Validation succeeded")
         return True
 
-    def _output_logs(self, benchmark_output):
+    def _output_logs(self, result):
         """Print out the results"""
 
-        out = benchmark_output.get_list_out()
-        err = benchmark_output.get_list_err()
-
-        # Make sure we have the right type of results
-        # Must be a list of dictionaries
-        if out and not isinstance(out[0], dict):
-            raise TypeError('out should be a list of dict')
-        if err and not isinstance(err[0], dict):
-            raise TypeError('err should be a list of dict')
-        if not os.path.isdir(self.results_path):
-            raise TypeError('%s should be a directory' % self.results_path)
+        if result and not isinstance(result, CompletedProcessList):
+            raise TypeError('result should be a list')
+        if result[0].stdout and not isinstance(result[0].stdout, dict):
+            raise TypeError('result element should be a dict')
+        if result[0].stderr and not isinstance(result[0].stderr, dict):
+            raise TypeError('result element should be a dict')
 
         # Print both stdout and stderr
         base_path = self.results_path + '/' + self.binary_name
         with open(base_path + '.out', 'w') as stdout:
-            yaml.dump(out, stdout, default_flow_style=False)
+            stdout.write(result.stdout())
+            stdout.close()
         with open(base_path + '.err', 'w') as stderr:
-            yaml.dump(err, stderr, default_flow_style=False)
+            stderr.write(result.stderr())
+            stderr.close()
 
         self.logger.info('Output logs at: %s.out' % base_path)
         self.logger.info(' Error logs at: %s.err' % base_path)
@@ -224,10 +229,11 @@ class BenchmarkController(object):
 
         self.logger.info(' ++ Preparing Benchmark Build ++')
         compiler_dict = self.compiler_model.getDictCompilers()
-        self._run_all(self.benchmark_model.prepare(self.benchmark_path,
-                                                   compiler_dict,
-                                                   self.args.iterations,
-                                                   self.args.size))
+        res = self._run_all(self.benchmark_model.prepare(self.benchmark_path,
+                                                         compiler_dict,
+                                                         self.args.iterations,
+                                                         self.args.size))
+        self._check_results(res, public=True)
 
         self.logger.info(' ++ Building Benchmark ++')
         compiler_flags, linker_flags = self.compiler_model.get_flags()
@@ -235,19 +241,21 @@ class BenchmarkController(object):
             compiler_flags += " " + self.args.compiler_flags
         if self.args.linker_flags:
             linker_flags += " " + self.args.linker_flags
-        self._run_all(self.benchmark_model.build(self.binary_name,
-                                                 compiler_flags,
-                                                 linker_flags))
+        res = self._run_all(self.benchmark_model.build(self.binary_name,
+                                                       compiler_flags,
+                                                       linker_flags))
+        self._check_results(res, public=True)
 
         self.logger.info(' ++ Running Benchmark ++')
-        output = self._run_all(self.benchmark_model.run(self.args.run_flags),
+        res = self._run_all(self.benchmark_model.run(self.args.run_flags),
                                perf=True)
+        self._check_results(res, public=False)
 
         self.logger.info(' ++ Validating Results ++')
-        valid = self._validate(output)
+        valid = self._validate(res)
 
         self.logger.info(' ++ Collecting Results ++')
-        self._output_logs(output)
+        self._output_logs(res)
 
         # Give "some" feedback if the log level is not high enough
         if (self.logger.silent()):

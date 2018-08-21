@@ -18,8 +18,8 @@ import logging
 import coloredlogs
 
 class BenchmarkLogger(object):
-    def __init__(self, logger, parser, verbosity):
-        self.logger = logger
+    def __init__(self, name, parser, verbosity):
+        self.logger = logging.getLogger(name)
 
         # Default level is WARNING (no output other than warnings and errors)
         start = 30
