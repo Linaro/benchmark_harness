@@ -249,6 +249,13 @@ class BenchmarkController(object):
         self.logger.info(' ++ Collecting Results ++')
         self._output_logs(output)
 
+        # Give "some" feedback if the log level is not high enough
+        if (self.logger.silent()):
+            if (valid):
+                print("PASS")
+            else:
+                print("FAIL")
+
         return valid
 
 

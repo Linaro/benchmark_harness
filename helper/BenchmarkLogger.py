@@ -42,3 +42,5 @@ class BenchmarkLogger(object):
     def debug(self, trace):
         self.logger.debug(trace)
 
+    def silent(self):
+        return self.logger.getEffectiveLevel() > logging.INFO
