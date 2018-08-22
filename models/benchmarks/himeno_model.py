@@ -26,9 +26,9 @@ class HimenoParser(OutputParser):
             'jmax': r'\bjmax\b\s+=\s+(\d+)',
             'kmax': r'\bkmax\b\s+=(\d+)',
             'cpu': r'cpu\s+:\s+(\d+[^\s]*)',
-            'gosa': r'Gosa\s+:\s+(\d+[^\s]*)',
+            'Gosa': r'Gosa\s+:\s+(\d+[^\s]*)',
             'MFLOPS': r'MFLOPS measured\s+:\s+(\d+.\d+)',
-            'score': r'Score based on MMX Pentium 200MHz\s+:\s+(\d+.\d+)'
+            'Score': r'Score based on MMX Pentium 200MHz\s+:\s+(\d+.\d+)'
         }
 
 
@@ -46,13 +46,22 @@ class ModelImplementation(BenchmarkModel):
     def prepare(self, root_path, machine, compiler, iterations, size):
         super().prepare(root_path, machine, compiler, iterations, size)
 
+        # As seen below, we need to change the type size to double to get
+        # repeatable results, but that also doubles the size of BSS, which
+        # needs a larger memory model on x86_64 (but not on AArch64)
+        if self.machine.arch == 'x86_64':
+            self.compiler_flags = '-mcmodel=large'
+
         # Himeno specific flags based on options
         # Validation will need more stable execution
         if (self.size >= 3):
+            self.checks = {'Gosa': lambda x: x == '7.394327e-04'}
             self.make_flags += 'MODEL=LARGE'
         elif (self.size == 2):
+            self.checks = {'Gosa': lambda x: x == '1.244771e-03'}
             self.make_flags += 'MODEL=MIDDLE'
         else:
+            self.checks = {'Gosa': lambda x: x == '1.688138e-03'}
             self.make_flags += 'MODEL=SMALL'
 
         # Download the benchmark, unzip
@@ -66,6 +75,12 @@ class ModelImplementation(BenchmarkModel):
                              '-d', self.root_path])
         prepare_cmds.append(['lhasa', '-xw=' + self.root_path,
                              os.path.join(self.root_path, 'himenobmt.c.lzh')])
+        # Himeno uses a lot of floating point multiplication and accumulation
+        # which causes a lot of precision issues with float types. Using double
+        # also saves a few instructions on 64-bit machines, but halves the lanes
+        # for vector instructions. Penalty is about 25% on average.
+        prepare_cmds.append(['sed', '-i', 's/float/double/g',
+                             os.path.join(self.root_path, 'himenoBMT.c')])
         return prepare_cmds
 
     def get_plugin(self):

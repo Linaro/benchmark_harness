@@ -2,6 +2,7 @@
 
 class MachineModel(object):
     def __init__(self):
+        self.arch = ''
         self.mbench_flags=''
         self.mcomp_flags=''
         self.mlink_flags=''
