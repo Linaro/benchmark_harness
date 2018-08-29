@@ -48,7 +48,7 @@ class CompilerModel(object):
     def _fetch_dependencies(self):
         pass
 
-    def getDictCompilers(self):
+    def get_env(self):
         return {'cxx': os.path.join(self.compilers_path, self.cxx_name),
                 'cc': os.path.join(self.compilers_path, self.cc_name),
                 'fortran': os.path.join(self.compilers_path, self.fortran_name),

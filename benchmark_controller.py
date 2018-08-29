@@ -129,9 +129,8 @@ class BenchmarkController(object):
 
             self.logger.debug('Compiler model for %s' % self.args.toolchain)
             self.logger.debug('     compiler_path %s' % self.compiler_path)
-            compiler_factory = CompilerFactory(self.args.toolchain,
-                                               self.compiler_path)
-            self.compiler_model = compiler_factory.getCompiler()
+            self.compiler_model = CompilerFactory(self.args.toolchain,
+                                                  self.compiler_path).getCompiler()
             self.logger.info('Compiler model loaded')
         except ImportError as err:
             self.logger.error(err, True)
@@ -228,9 +227,9 @@ class BenchmarkController(object):
         self._load_models()
 
         self.logger.info(' ++ Preparing Benchmark Build ++')
-        compiler_dict = self.compiler_model.getDictCompilers()
         res = self._run_all(self.benchmark_model.prepare(self.benchmark_path,
-                                                         compiler_dict,
+                                                         self.machine_model,
+                                                         self.compiler_model,
                                                          self.args.iterations,
                                                          self.args.size))
         self._check_results(res, public=True)

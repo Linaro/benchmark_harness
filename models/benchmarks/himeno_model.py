@@ -43,8 +43,8 @@ class ModelImplementation(BenchmarkModel):
         self.benchmark_url = 'http://accc.riken.jp/en/wp-content/uploads/sites/2/2015/07/himenobmt.c.zip'
         self.size = 2
 
-    def prepare(self, root_path, compilers_dict, iterations, size):
-        super().prepare(root_path, compilers_dict, iterations, size)
+    def prepare(self, root_path, machine, compiler, iterations, size):
+        super().prepare(root_path, machine, compiler, iterations, size)
 
         # Himeno specific flags based on options
         # Validation will need more stable execution

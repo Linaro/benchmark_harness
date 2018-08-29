@@ -14,7 +14,6 @@ class BenchmarkModel(object):
         self.linker_flags = ''
         self.make_flags = ''
         self.run_flags = ''
-        self.compiler = dict()
 
         # Benchmark files location
         self.url = ''
@@ -24,11 +23,15 @@ class BenchmarkModel(object):
         self.iterations = 1
         self.size = 1
 
+        # Machine and compiler models
+        self.compiler = None
+        self.machine = None
+
         # Validation checks dictionary (compare to results)
         self.checks = dict()
 
     ## CORE
-    def prepare(self, root_path, compiler, iterations, size):
+    def prepare(self, root_path, machine, compiler, iterations, size):
         """Prepares envrionment for running the benchmark
         This entitles : fetching the benchmark and preparing
         for running it"""
@@ -36,15 +39,17 @@ class BenchmarkModel(object):
             self.root_path = os.path.join(root_path, self.name)
         else:
             raise ValueError("Root path not passed to benchmark")
-        if compiler:
-            self.compiler = compiler
-        else:
-            raise ValueError("Compiler not passed to benchmark")
+        if not machine or not compiler:
+            raise ValueError("Machine/compiler models not passed to benchmark")
 
+        self.machine = machine
+        self.compiler = compiler
+
+        libpath = self.compiler.get_env()['lib']
         if 'LD_LIBRARY_PATH' in os.environ:
-            os.environ["LD_LIBRARY_PATH"] += ':' + compiler['lib']
+            os.environ["LD_LIBRARY_PATH"] += ':' + libpath
         else:
-            os.environ["LD_LIBRARY_PATH"] = compiler['lib']
+            os.environ["LD_LIBRARY_PATH"] = libpath
 
         if isinstance(iterations, int) and iterations > 0:
             self.iterations = iterations
@@ -55,14 +60,15 @@ class BenchmarkModel(object):
         all_compiler_flags = self.compiler_flags + " " + extra_compiler_flags
         all_linker_flags = self.linker_flags + " " + extra_linker_flags
 
+        compiler_env = self.compiler.get_env()
         build_cmd = []
         make_cmd = []
         make_cmd.append('make')
         make_cmd.append('-C')
         make_cmd.append(self.root_path)
-        make_cmd.append('CXX=' + self.compiler['cxx'])
-        make_cmd.append('CC=' + self.compiler['cc'])
-        make_cmd.append('FC=' + self.compiler['fortran'])
+        make_cmd.append('CXX=' + compiler_env['cxx'])
+        make_cmd.append('CC=' + compiler_env['cc'])
+        make_cmd.append('FC=' + compiler_env['fortran'])
         make_cmd.append('CFLAGS=' + all_compiler_flags)
         make_cmd.append('CXXFLAGS=' + all_compiler_flags)
         make_cmd.append('LDFLAGS=' + all_linker_flags)
