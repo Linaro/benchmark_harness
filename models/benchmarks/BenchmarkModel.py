@@ -22,6 +22,7 @@ class BenchmarkModel(object):
         # Harness options (meta variables) which may be unused
         self.iterations = 1
         self.size = 1
+        self.threads = 1
 
         # Machine and compiler models
         self.compiler = None
