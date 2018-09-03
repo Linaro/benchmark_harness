@@ -44,7 +44,7 @@ class ModelImplementation(BenchmarkModel):
         self.compiler_flags = '-DUSE_MPI=0 -fopenmp'
         self.linker_flags = '-fopenmp'
         self.size = 2
-        self.benchmark_url = 'https://github.com/BaptisteGerondeau/LULESH.git'
+        self.benchmark_url = 'https://github.com/LLNL/LULESH.git'
 
     def prepare(self, root_path, machine, compiler, iterations, size):
         super().prepare(root_path, machine, compiler, iterations, size)
@@ -61,8 +61,10 @@ class ModelImplementation(BenchmarkModel):
             self.run_flags += '-s 10'
 
         prepare_cmds = []
-        prepare_run_cmd = ['git', 'clone', self.benchmark_url, self.root_path]
-        prepare_cmds.append(prepare_run_cmd)
+        prepare_cmds.append(['git', 'clone', self.benchmark_url, self.root_path])
+        # Remove this once https://github.com/LLNL/LULESH/pull/2 has been merged
+        prepare_cmds.append(['sed', '-i', 's/^lulesh2.0:/$(LULESH_EXEC):/g',
+                             os.path.join(self.root_path, 'Makefile')])
         return prepare_cmds
 
     def run(self, extra_run_flags):
