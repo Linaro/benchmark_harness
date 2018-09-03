@@ -6,6 +6,7 @@ from models.compilers.CompilerModel import CompilerModel
 class ModelImplementation(CompilerModel):
     def __init__(self):
         super().__init__()
+        self.name = 'gcc'
         self.version=''
         self.cxx_name='g++'
         self.cc_name='gcc'

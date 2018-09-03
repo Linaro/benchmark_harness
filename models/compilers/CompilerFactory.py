@@ -22,20 +22,26 @@ from shutil import which
 class CompilerFactory(ModelFactory):
     """Fetch, prepare and setup compilers"""
 
-    def __init__(self, toolchain_url, toolchain_extractpath):
+    def __init__(self, toolchain_url, root_path):
         self.toolchain_url = toolchain_url
-        self.toolchain_extractpath = toolchain_extractpath
+        self.extractpath = os.path.join(root_path, 'compiler')
+        os.mkdir(self.extractpath)
+        self.system_compilers = ['gcc', 'clang']
         super(CompilerFactory, self).__init__('compilers')
 
     def getCompiler(self):
         """Gets a compiler from URL or system local"""
+        # TODO: Set the name of the compiler to the toolchain URL if possible
 
-        if re.match("(http|ftp)://", self.toolchain_url):
+        if not self.toolchain_url:
+            # If empty, try system defaults
+            return self._fetch_system()
+        elif re.match("(http|ftp)://", self.toolchain_url):
             # URLs that we can use urlretrieve
             self.filename = self.toolchain_url.split('/')[-1]
             self.dirname = re.sub("\.(tar|tgz)\.?(gz|xz)?", "", self.filename)
-            self.base = os.path.join(self.toolchain_extractpath, self.dirname)
-            self.path = os.path.join(self.toolchain_extractpath, self.filename)
+            self.base = os.path.join(self.extractpath, self.dirname)
+            self.path = os.path.join(self.extractpath, self.filename)
             extracted_tar = self._download_toolchain()
             return self._fetch_compiler(extracted_tar)
         elif re.match("file://", self.toolchain_url):
@@ -51,9 +57,9 @@ class CompilerFactory(ModelFactory):
         """Extracts toolchain directory"""
 
         tarball = tarfile.open(filename)
-        tarball.extractall(self.toolchain_extractpath)
+        tarball.extractall(self.extractpath)
 
-        # TODO: self.toolchain_extractpath and self.base are disconnected
+        # TODO: self.extractpath and self.base are disconnected
         if not os.path.isdir(self.base):
             raise ImportError('Toolchain directory name %s does not match' %
                               self.base)
@@ -75,11 +81,19 @@ class CompilerFactory(ModelFactory):
                 return self._find_model(os.path.join(root, 'bin'))
         raise ImportError('Compiler binary dir not found')
 
-    def _fetch_system(self, compiler):
+    def _fetch_system(self, compiler=None):
         """Identifies the system toolchain's full path"""
 
-        compiler_path = which(compiler)
-        if compiler_path is None:
-            raise ImportError('Compiler %s not installed' % compiler)
+        compilers = self.system_compilers
+        if compiler:
+            compilers = [compiler]
+
+        for comp in compilers:
+            compiler_path = which(comp)
+            if compiler_path:
+                break
+
+        if not compiler_path:
+            raise ImportError('Cannot find compiler. Tried: %' % compilers)
 
         return self._find_model(compiler_path)

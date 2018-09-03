@@ -46,8 +46,8 @@ class ModelImplementation(BenchmarkModel):
         self.size = 2
         self.benchmark_url = 'https://github.com/LLNL/LULESH.git'
 
-    def prepare(self, root_path, machine, compiler, iterations, size):
-        super().prepare(root_path, machine, compiler, iterations, size)
+    def prepare(self, machine, compiler, iterations, size):
+        super().prepare(machine, compiler, iterations, size)
 
         # Lulesh specific flags based on options
         if (self.size >= 3):

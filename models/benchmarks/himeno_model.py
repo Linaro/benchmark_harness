@@ -43,8 +43,8 @@ class ModelImplementation(BenchmarkModel):
         self.benchmark_url = 'http://accc.riken.jp/en/wp-content/uploads/sites/2/2015/07/himenobmt.c.zip'
         self.size = 2
 
-    def prepare(self, root_path, machine, compiler, iterations, size):
-        super().prepare(root_path, machine, compiler, iterations, size)
+    def prepare(self, machine, compiler, iterations, size):
+        super().prepare(machine, compiler, iterations, size)
 
         # As seen below, we need to change the type size to double to get
         # repeatable results, but that also doubles the size of BSS, which

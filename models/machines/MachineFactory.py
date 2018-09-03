@@ -5,14 +5,26 @@
     from a machine names.
 """
 from models.ModelFactory import ModelFactory
+from executor.Execute import Execute
 
 class MachineFactory(ModelFactory):
     """Identify and return the correct machine model"""
-    # TODO: Identify machines via specific test (uname, etc)
 
     def __init__(self, name):
         self.name = name
+        if not name:
+            self.name = self._auto_detect()
         super(MachineFactory, self).__init__('machines')
+
+    def _auto_detect(self):
+        """Detect architecture if empty"""
+        result = Execute(['uname', '-m']).run()
+        if result.returncode:
+            msg = "'uname -m' error: [" + result.stderr + "]"
+            raise RuntimeError("Error auto-detecting machine type: " + msg)
+        if not result.stdout:
+            raise RuntimeError("Unable to detect machine type with uname")
+        return result.stdout.strip()
 
     def getMachine(self):
         """Loads machine model and returns"""

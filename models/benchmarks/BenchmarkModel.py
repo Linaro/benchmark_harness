@@ -31,14 +31,9 @@ class BenchmarkModel(object):
         self.checks = dict()
 
     ## CORE
-    def prepare(self, root_path, machine, compiler, iterations, size):
-        """Prepares envrionment for running the benchmark
-        This entitles : fetching the benchmark and preparing
-        for running it"""
-        if isinstance(root_path, str) and root_path:
-            self.root_path = os.path.join(root_path, self.name)
-        else:
-            raise ValueError("Root path not passed to benchmark")
+    def prepare(self, machine, compiler, iterations, size):
+        """ Fetching the benchmark and preparing for running it"""
+
         if not machine or not compiler:
             raise ValueError("Machine/compiler models not passed to benchmark")
 
@@ -57,6 +52,8 @@ class BenchmarkModel(object):
             self.size = size
 
     def build(self, binary_name, extra_compiler_flags, extra_linker_flags):
+        """Builds the benchmark"""
+
         all_compiler_flags = self.compiler_flags + " " + extra_compiler_flags
         all_linker_flags = self.linker_flags + " " + extra_linker_flags
 
@@ -88,8 +85,8 @@ class BenchmarkModel(object):
 
     def run(self, extra_run_flags):
         """Runs the benchmarks using the base + extra flags"""
-        all_run_flags = self.run_flags + " " + extra_run_flags
 
+        all_run_flags = self.run_flags + " " + extra_run_flags
         binary_path = os.path.join(self.root_path, self.executable)
 
         run_cmds = []
@@ -119,5 +116,6 @@ class BenchmarkModel(object):
 
     ## HELPERS
     def get_parser(self):
-        """Returns the plugin to parse the results"""
+        """Returns the plugin to parse the results : specific benchmarks
+           should override this method, returning their own parsers"""
         pass
