@@ -16,7 +16,6 @@ class CompilerModel(object):
         self.fortran_name = ''
         self.default_compiler_flags = ''
         self.default_link_flags = ''
-        self.default_dependencies = []
 
     def check(self, bin_path):
         if os.path.isdir(bin_path):

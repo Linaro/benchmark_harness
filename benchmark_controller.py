@@ -19,6 +19,7 @@ from pathlib import Path
 import shutil
 
 from helper.BenchmarkLogger import BenchmarkLogger
+from helper.Manifest import Manifest
 
 from models.compilers.CompilerFactory import CompilerFactory
 from models.benchmarks.BenchmarkFactory import BenchmarkFactory
@@ -53,9 +54,7 @@ class BenchmarkController(object):
         identity = sep.join([
             self.args.benchmark_name,
             self.args.machine_type,
-            (self.args.toolchain.rsplit('/', 1)[-1])[:24],
-            self.args.compiler_flags,
-            self.args.run_flags])
+            (self.args.toolchain.rsplit('/', 1)[-1])[:24]])
 
         # Clean up invalid chars
         self.binary_name = re.sub("[^a-zA-Z0-9_-]+", "", identity).lower()
@@ -65,8 +64,8 @@ class BenchmarkController(object):
     def _clean_path(self):
         """Cleanup the directory at the supplied root path"""
 
-        # If wipe, remove everything
-        if self.args.wipe and os.path.exists(self.unique_root_path):
+        # Always wipe everything
+        if os.path.exists(self.unique_root_path):
             self.logger.info('Wiping %s' % self.unique_root_path)
             shutil.rmtree(self.unique_root_path)
 
@@ -182,8 +181,16 @@ class BenchmarkController(object):
             stderr.write(result.stderr())
             stderr.close()
 
-        self.logger.info('Output logs at: %s.out' % base_path)
-        self.logger.info(' Error logs at: %s.err' % base_path)
+        # Dump the manifest
+        manifest = Manifest(self.benchmark_model,
+                            self.compiler_model,
+                            self.machine_model,
+                            self.args, os.environ)
+        manifest.dump(base_path + ".manifest")
+
+        self.logger.info('Output logs at: %s.out'      % base_path)
+        self.logger.info(' Error logs at: %s.err'      % base_path)
+        self.logger.info('   Manifest at: %s.manifest' % base_path)
 
     def main(self):
         """Main driver - downloads, unzip, compile, run, collect results"""
@@ -222,7 +229,7 @@ class BenchmarkController(object):
         self.logger.info(' ++ Validating Results ++')
         valid = self._validate(res)
 
-        self.logger.info(' ++ Collecting Results ++')
+        self.logger.info(' ++ Collecting Results / Manifest ++')
         self._output_logs(res)
 
         # Give "some" feedback if the log level is not high enough
@@ -250,8 +257,6 @@ if __name__ == '__main__':
                         help='The url/name of the toolchain to compile the benchmark')
     parser.add_argument('--unique-id', type=str, default=str(os.getpid()),
                         help='Unique ID (ex. run number, sequential)')
-    parser.add_argument('--wipe', type=bool, default=False,
-                        help='Wipe benchmark root directory before run')
     parser.add_argument('--root-path', type=str, default='./runs',
                         help='The root directory for toolchains, benchmarks, results')
     parser.add_argument('--iterations', type=int,

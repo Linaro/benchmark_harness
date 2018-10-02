@@ -12,4 +12,3 @@ class ModelImplementation(CompilerModel):
         self.cxx_name='clang++'
         self.fortran_name='flang'
         self.default_compiler_flags='-O3 -ffast-math -ffp-contract=on'
-        self.default_dependencies=[]

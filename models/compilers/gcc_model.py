@@ -12,5 +12,4 @@ class ModelImplementation(CompilerModel):
         self.cc_name='gcc'
         self.fortran_name='gfortran'
         self.default_compiler_flags='-O3 -ffast-math -funroll-loops'
-        self.default_dependencies=[]
 
