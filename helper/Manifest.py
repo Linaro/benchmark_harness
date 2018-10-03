@@ -61,6 +61,7 @@ class Manifest(object):
         manifest['benchmark'] = self._clear_vars(self.benchmark)
         manifest['compiler'] = self._clear_vars(self.compiler)
         manifest['machine'] = self._clear_vars(self.machine)
+        manifest['hardware'] = self.machine.cpu_info
         if self.args:
             manifest['args'] = self._clear_vars(self.args)
         if self.env:
