@@ -3,6 +3,7 @@
 class MachineModel(object):
     def __init__(self):
         self.arch = ''
+        self.num_cores = 1
         self.comp_flags=''
         self.link_flags=''
 

@@ -207,7 +207,8 @@ class BenchmarkController(object):
         res = self._run_all(self.benchmark_model.prepare(self.machine_model,
                                                          self.compiler_model,
                                                          self.args.iterations,
-                                                         self.args.size))
+                                                         self.args.size,
+                                                         self.args.threads))
         self._check_results(res, public=True)
 
         self.logger.info(' ++ Building Benchmark ++')
@@ -250,11 +251,13 @@ if __name__ == '__main__':
     parser.add_argument('benchmark_name', type=str,
                         help='The name of the benchmark to run')
 
-    # Harness optional: root dir, unique id, verbose
+    # Required, but auto-detected if omitted
     parser.add_argument('--machine_type', type=str,
                         help='The type of the machine to run the benchmark on')
     parser.add_argument('--toolchain', type=str,
                         help='The url/name of the toolchain to compile the benchmark')
+
+    # Harness optionals
     parser.add_argument('--unique-id', type=str, default=str(os.getpid()),
                         help='Unique ID (ex. run number, sequential)')
     parser.add_argument('--root-path', type=str, default='./runs',
@@ -263,10 +266,12 @@ if __name__ == '__main__':
                         help='Number of iterations to run the same build')
     parser.add_argument('--size', type=int,
                         help='Meta variable that determines the size of the benchmark run')
+    parser.add_argument('--threads', type=int,
+                        help='Number of threads (OpenMP, multiple dispatch), MPI')
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help='The verbosity of logging output')
 
-    # Extra flags
+    # Extra build/run flags
     parser.add_argument('--compiler-flags', type=str, default='',
                         help='The extra compiler flags')
     parser.add_argument('--linker-flags', type=str, default='',

@@ -32,7 +32,7 @@ class BenchmarkModel(object):
         self.checks = dict()
 
     ## CORE
-    def prepare(self, machine, compiler, iterations, size):
+    def prepare(self, machine, compiler, iterations, size, threads):
         """ Fetching the benchmark and preparing for running it"""
 
         if not machine or not compiler:
@@ -47,10 +47,12 @@ class BenchmarkModel(object):
         else:
             os.environ["LD_LIBRARY_PATH"] = libpath
 
-        if isinstance(iterations, int) and iterations > 0:
+        if iterations and iterations > 0:
             self.iterations = iterations
-        if isinstance(size, int) and size > 0:
+        if size and size > 0:
             self.size = size
+        if threads and threads > 0:
+            self.threads = threads
 
     def build(self, binary_name, extra_compiler_flags, extra_linker_flags):
         """Builds the benchmark"""

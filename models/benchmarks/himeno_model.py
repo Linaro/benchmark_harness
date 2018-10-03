@@ -43,8 +43,11 @@ class ModelImplementation(BenchmarkModel):
         self.benchmark_url = 'http://accc.riken.jp/en/wp-content/uploads/sites/2/2015/07/himenobmt.c.zip'
         self.size = 2
 
-    def prepare(self, machine, compiler, iterations, size):
-        super().prepare(machine, compiler, iterations, size)
+    def prepare(self, machine, compiler, iterations, size, threads):
+        if threads and threads != 1:
+            # TODO: Transform this into a warning when we have a logger
+            raise ValueError("Himeno can't run with more than one thread")
+        super().prepare(machine, compiler, iterations, size, 1)
 
         # As seen below, we need to change the type size to double to get
         # repeatable results, but that also doubles the size of BSS, which

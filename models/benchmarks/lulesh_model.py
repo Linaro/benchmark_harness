@@ -46,8 +46,8 @@ class ModelImplementation(BenchmarkModel):
         self.size = 2
         self.benchmark_url = 'https://github.com/LLNL/LULESH.git'
 
-    def prepare(self, machine, compiler, iterations, size):
-        super().prepare(machine, compiler, iterations, size)
+    def prepare(self, machine, compiler, iterations, size, threads):
+        super().prepare(machine, compiler, iterations, size, threads)
 
         # Lulesh specific flags based on options
         if (self.size >= 3):
@@ -60,6 +60,11 @@ class ModelImplementation(BenchmarkModel):
             self.checks = {'FinalEnergy': lambda x: x == '2.720531e+04'}
             self.run_flags += '-s 10'
 
+        # Update OMP_THREADS if not using all cores
+        if self.threads != self.machine.num_cores:
+            os.environ['OMP_NUM_THREADS'] = repr(self.threads)
+
+        # Clone repo
         prepare_cmds = []
         prepare_cmds.append(['git', 'clone', self.benchmark_url, self.root_path])
         # Remove this once https://github.com/LLNL/LULESH/pull/2 has been merged
