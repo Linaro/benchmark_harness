@@ -267,7 +267,7 @@ if __name__ == '__main__':
     parser.add_argument('--size', type=int,
                         help='Meta variable that determines the size of the benchmark run')
     parser.add_argument('--threads', type=int,
-                        help='Number of threads (OpenMP, multiple dispatch), MPI')
+                        help='Number of threads (OpenMP, multiple dispatch, MPI)')
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help='The verbosity of logging output')
 

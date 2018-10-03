@@ -56,7 +56,6 @@ class ModelImplementation(BenchmarkModel):
             self.compiler_flags = '-mcmodel=large'
 
         # Himeno specific flags based on options
-        # Validation will need more stable execution
         if (self.size >= 3):
             self.checks = {'Gosa': lambda x: x == '7.394327e-04'}
             self.make_flags += 'MODEL=LARGE'
