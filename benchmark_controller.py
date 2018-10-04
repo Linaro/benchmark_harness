@@ -20,6 +20,7 @@ import shutil
 
 from helper.BenchmarkLogger import BenchmarkLogger
 from helper.Manifest import Manifest
+from helper.SimpleStats import SimpleStats
 
 from models.compilers.CompilerFactory import CompilerFactory
 from models.benchmarks.BenchmarkFactory import BenchmarkFactory
@@ -181,6 +182,8 @@ class BenchmarkController(object):
         with open(base_path + '.err', 'w') as stderr:
             stderr.write(result.stderr())
             stderr.close()
+        self.logger.info('Output logs at: %s.out'      % base_path)
+        self.logger.info(' Error logs at: %s.err'      % base_path)
 
         # Dump the manifest
         manifest = Manifest(self.benchmark_model,
@@ -188,10 +191,13 @@ class BenchmarkController(object):
                             self.machine_model,
                             self.args, os.environ)
         manifest.dump(base_path + ".manifest")
-
-        self.logger.info('Output logs at: %s.out'      % base_path)
-        self.logger.info(' Error logs at: %s.err'      % base_path)
         self.logger.info('   Manifest at: %s.manifest' % base_path)
+
+        # Collect all data and dump simple statistics
+        if len(result) > 1:
+            stats = SimpleStats(result)
+            stats.dump(base_path + ".stats")
+            self.logger.info(' Statistics at: %s.stats'    % base_path)
 
     def main(self):
         """Main driver - downloads, unzip, compile, run, collect results"""

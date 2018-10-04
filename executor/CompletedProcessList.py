@@ -28,6 +28,9 @@ class CompletedProcessList:
         self.idx += 1
         return self.list[self.idx-1]
 
+    def __len__(self):
+        return len(self.list)
+
     def __getitem__(self, idx):
         self.idx = 0
         return self.list[idx]
