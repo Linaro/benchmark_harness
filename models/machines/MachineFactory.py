@@ -19,7 +19,7 @@ class MachineFactory(ModelFactory):
     def _auto_detect(self):
         """Detect architecture if empty"""
 
-        result = Execute(['uname', '-m']).run()
+        result = Execute().run(['uname', '-m'])
         if result.returncode:
             msg = "'uname -m' error: [" + result.stderr + "]"
             raise RuntimeError("Error auto-detecting machine type: " + msg)

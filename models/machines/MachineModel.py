@@ -27,7 +27,7 @@ class MachineModel(object):
             self.cpu_info = dict()
 
         # Top-up self.cpu_info about CPU and architecture (json output is not common)
-        main_values = Execute(['lscpu']).run()
+        main_values = Execute().run(['lscpu'])
         for line in main_values.stdout.split('\n'):
             if not line:
                 continue
@@ -41,7 +41,7 @@ class MachineModel(object):
         self.cpu_info['socket_span'] = int(self.cpu_info['threads'] / int(self.cpu_info['Socket(s)']))
 
         # Cache mapping
-        core_values = Execute(['lscpu', '-e']).run()
+        core_values = Execute().run(['lscpu', '-e'])
         cores = core_values.stdout.split('\n')
         fields = re.split("\s+", cores[0])
 
@@ -74,7 +74,7 @@ class MachineModel(object):
             self.cpu_info = dict()
 
         # Top-up self.cpu_info about memory
-        main_values = Execute(['free', '-g']).run()
+        main_values = Execute().run(['free', '-g'])
         for line in main_values.stdout.split('\n'):
             # Format: "Mem|Swap: <total> ..."
             match = re.match("^(\w+):\s+(\d+)\s", line)

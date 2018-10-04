@@ -4,8 +4,7 @@
  Linux Tools' Perf wrapper for Execute
 
  Usage:
-  app = LinuxPerf(['myapp', '-flag', 'etc'], outp=Plugin)
-  out, err = app.stat()
+  out, err = LinuxPerf(, outp=Plugin).run(['myapp', '-flag', 'etc'])
 
  Plugin: parses the output of a specific benchmark, returns a dictionary
          stderr is parsed by Perf's own local parser. If benchmark also
@@ -37,22 +36,20 @@ class LinuxPerfParser(OutputParser):
 class LinuxPerf(Execute):
     """Overrides Executor to run commands using Linux perf"""
 
-    def __init__(self, program=None, plugin=None, perf=None):
-        if program and not isinstance(program, list):
-            raise TypeError("Program needs to be a list of arguments")
-        if not program:
-            raise ValueError("Need program arguments to run perf")
+    def __init__(self, plugin=None, perf=None, affinity=None):
         if plugin and not isinstance(plugin, OutputParser):
             raise TypeError("Output parser needs to derive from OutputParser")
 
-        super(LinuxPerf, self).__init__(None, plugin, LinuxPerfParser())
+        super(LinuxPerf, self).__init__(plugin, LinuxPerfParser())
 
-        # Program to run, to be wrapped with perf stat
-        self.program = program
         # list of events
         self.events = list()
         # additional stat arguments
         self.stat_args = list()
+        # Taskset parameters
+        self.taskset = shutil.which('taskset')
+        self.affinity = affinity
+        self.affinity_idx = 0
         # Validate perf and permissions
         self._validate(perf)
 
@@ -92,22 +89,36 @@ class LinuxPerf(Execute):
             ev_str.pop()
             self.stat_args.append(ev_str)
 
-
-    def run(self):
+    def run(self, program=None):
         """Runs perf stat on the process, saving the output"""
 
+        if program and not isinstance(program, list):
+            raise TypeError("Program needs to be a list of arguments")
+        if not program:
+            raise ValueError("Need program arguments to run perf")
+
+        call = []
+
+        # When passed affinity list, taskset in order
+        if self.affinity:
+            if len(self.affinity) <= self.affinity_idx:
+                raise RuntimeError("Asking for more threads than cores")
+            # Bypass zeros for now (TODO: warn about low-confidence zone)
+            while not self.affinity[self.affinity_idx]:
+                self.affinity_idx += 1
+            # Add taskset to cmd_line and increment index
+            call.extend([self.taskset, str(self.affinity[self.affinity_idx])])
+            self.affinity_idx += 1
+
         # Perf itself
-        call = [self.perf, 'stat']
+        call.extend([self.perf, 'stat'])
 
         # Stat arguments, if any
         if self.stat_args:
             call.extend(self.stat_args)
 
         # Adding program to perf
-        call.extend(self.program)
-
-        # Replaces program with perf call
-        self.program = call
+        call.extend(program)
 
         # Call and collect output
-        return super().run()
+        return super().run(call)

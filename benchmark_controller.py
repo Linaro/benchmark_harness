@@ -110,20 +110,21 @@ class BenchmarkController(object):
         # Group all results in a single list object
         results = CompletedProcessList()
 
+        if perf:
+            self.logger.debug('Executing with Linux Perf engine')
+            executor = LinuxPerf(plugin=self.benchmark_model.get_plugin(),
+                                 affinity=self.machine_model.affinity)
+        else:
+            executor = Execute()
+
         for cmd in list_of_commands:
             if not cmd:
                 self.logger.debug('Empty command, ignoring')
                 continue
 
-            if perf:
-                self.logger.debug('Executing with Linux Perf engine')
-                executor = LinuxPerf(cmd, self.benchmark_model.get_plugin())
-            else:
-                executor = Execute(cmd)
-
             # Executes command, captures results
             self.logger.info('Running command : ' + str(cmd))
-            result = executor.run()
+            result = executor.run(cmd)
             results.append(result)
 
         return results

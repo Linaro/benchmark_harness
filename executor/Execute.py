@@ -4,7 +4,7 @@
  Execute Commands, return out/err, accepts parser plugins
 
  Usage:
-  out, err = Execute(['myapp', '-flag', 'etc'], outp=Plugin, errp=None).run()
+  out, err = Execute(outp=Plugin, errp=None).run(['myapp', '-flag', 'etc'])
 
  Plugin: parses the output of a specific benchmark, returns a dict()
          passing None makes run() returns plain text as str()
@@ -49,24 +49,26 @@ class OutputParser:
 class Execute(object):
     """Executes commands, captures output, parse with plugins"""
 
-    def __init__(self, program, outp=None, errp=None):
+    def __init__(self, outp=None, errp=None):
         # validate arguments
-        if program and not isinstance(program, list):
-            raise TypeError("Program needs to be a list of arguments")
         if outp and not isinstance(outp, OutputParser):
             raise TypeError("Output parser needs to derive from OutputParser")
         if errp and not isinstance(errp, OutputParser):
             raise TypeError("Error parser needs to derive from OutputParser")
 
-        self.program = program
         self.outp = outp
         self.errp = errp
 
-    def run(self):
+    def run(self, program):
         """Execute Commands, return out/err, accepts parser plugins"""
 
+        if program and not isinstance(program, list):
+            raise TypeError("Program needs to be a list of arguments")
+        if not program:
+            raise ValueError("Need program arguments to execute")
+
         # Call the program, capturing stdout/stderr
-        result = subprocess.run(self.program,
+        result = subprocess.run(program,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
  
