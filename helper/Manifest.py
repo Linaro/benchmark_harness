@@ -30,15 +30,8 @@ class Manifest(object):
         fields = dict()
         for name in vars(module):
             field = getattr(module,name)
-            if isinstance(field, dict) or isinstance(field, re.Match):
-                continue
-            if isinstance(field, BenchmarkModel):
-                continue
-            if isinstance(field, CompilerModel):
-                continue
-            if isinstance(field, MachineModel):
-                continue
-            fields[name] = field
+            if field is None or isinstance(field, (str, int, float, list, tuple)):
+                fields[name] = field
         return fields
 
     def _clear_env(self, env):
