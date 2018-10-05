@@ -36,11 +36,11 @@ class LinuxPerfParser(OutputParser):
 class LinuxPerf(Execute):
     """Overrides Executor to run commands using Linux perf"""
 
-    def __init__(self, plugin=None, perf=None, affinity=None):
+    def __init__(self, plugin=None, perf=None, logger=None, affinity=None):
         if plugin and not isinstance(plugin, OutputParser):
             raise TypeError("Output parser needs to derive from OutputParser")
 
-        super(LinuxPerf, self).__init__(plugin, LinuxPerfParser())
+        super(LinuxPerf, self).__init__(plugin, LinuxPerfParser(), logger)
 
         # list of events
         self.events = list()
@@ -89,7 +89,7 @@ class LinuxPerf(Execute):
             ev_str.pop()
             self.stat_args.append(ev_str)
 
-    def run(self, program=None):
+    def run(self, program, threads=1):
         """Runs perf stat on the process, saving the output"""
 
         if program and not isinstance(program, list):
@@ -99,16 +99,24 @@ class LinuxPerf(Execute):
 
         call = []
 
+        # Default to core 2 (more stable than 1)
+        core = 2
         # When passed affinity list, taskset in order
-        if self.affinity:
+        if self.affinity and threads > 1:
             if len(self.affinity) <= self.affinity_idx:
                 raise RuntimeError("Asking for more threads than cores")
+            # Execution will only ask for 'threads' cores, so use the first N
+            if self.affinity_idx >= threads:
+                self.affinity_idx = 0
             # Bypass zeros for now (TODO: warn about low-confidence zone)
             while not self.affinity[self.affinity_idx]:
                 self.affinity_idx += 1
             # Add taskset to cmd_line and increment index
-            call.extend([self.taskset, str(self.affinity[self.affinity_idx])])
+            core = self.affinity[self.affinity_idx]
             self.affinity_idx += 1
+
+        # Force taskset on all occasions (stability)
+        call.extend([self.taskset, str(core)])
 
         # Perf itself
         call.extend([self.perf, 'stat'])

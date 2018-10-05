@@ -114,9 +114,10 @@ class BenchmarkController(object):
         if perf:
             self.logger.debug('Executing with Linux Perf engine')
             executor = LinuxPerf(plugin=self.benchmark_model.get_plugin(),
-                                 affinity=self.machine_model.affinity)
+                                 affinity=self.machine_model.affinity,
+                                 logger=self.logger)
         else:
-            executor = Execute()
+            executor = Execute(logger=self.logger)
 
         for cmd in list_of_commands:
             if not cmd:

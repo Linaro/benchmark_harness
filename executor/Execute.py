@@ -14,6 +14,8 @@
 import subprocess
 import re
 
+from helper.BenchmarkLogger import BenchmarkLogger
+
 class OutputParser:
     """Base class for all output (out/err) parsers that will be passed
        to the Execute class."""
@@ -49,7 +51,7 @@ class OutputParser:
 class Execute(object):
     """Executes commands, captures output, parse with plugins"""
 
-    def __init__(self, outp=None, errp=None):
+    def __init__(self, outp=None, errp=None, logger=None):
         # validate arguments
         if outp and not isinstance(outp, OutputParser):
             raise TypeError("Output parser needs to derive from OutputParser")
@@ -58,6 +60,7 @@ class Execute(object):
 
         self.outp = outp
         self.errp = errp
+        self.logger = logger
 
     def run(self, program):
         """Execute Commands, return out/err, accepts parser plugins"""
@@ -66,6 +69,9 @@ class Execute(object):
             raise TypeError("Program needs to be a list of arguments")
         if not program:
             raise ValueError("Need program arguments to execute")
+
+        if self.logger:
+            self.logger.debug('Executing: %s' % repr(program))
 
         # Call the program, capturing stdout/stderr
         result = subprocess.run(program,
