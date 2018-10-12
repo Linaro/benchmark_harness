@@ -4,7 +4,7 @@
 import subprocess
 import os
 import re
-
+import shutil
 
 class CompilerModel(object):
 
@@ -17,47 +17,59 @@ class CompilerModel(object):
         self.default_compiler_flags = ''
         self.default_link_flags = ''
 
+    def _check_version(self, path):
+        if not path:
+            path = self.cc_name
+        if not path:
+            return ''
+        if not os.path.isfile(path):
+            path = shutil.which(path)
+        if not os.path.isfile(path):
+            return ''
+
+        output = subprocess.check_output([path, '--version']).decode('utf-8')
+        if self.cc_name in output:
+            found = re.search(
+                r'' + re.escape(self.cc_name) + r'.*? (\d*\.\d*\.\d*)', output)
+            if found:
+                self.version = found.group(1)
+            self.cc_name = path
+            return True
+        else:
+            return False
+
+    def _check_binary(self, path):
+
+        if not path or \
+           not os.path.isfile(path) or \
+           not os.access(path, os.X_OK):
+            return False
+
+        if self._check_version(path):
+            self.compilers_path = os.path.realpath(path)
+            self.sysroot_path = os.path.realpath(os.path.join(path, '../'))
+            return True
+        else:
+            return False
+
     def check(self, bin_path):
         if os.path.isdir(bin_path):
             for file in os.listdir(bin_path):
                 if file == self.cc_name:
-                    output = subprocess.check_output([os.path.join(bin_path, file),
-                                                      '--version']).decode('utf-8')
-                    if self.cc_name in output:
-                        self.version = re.search(
-                            r'' + re.escape(self.cc_name) + r'.*? (\d*\.\d*\.\d*)', output)
-                        self.compilers_path = os.path.abspath(bin_path)
-                        self.sysroot_path = os.path.abspath(
-                            os.path.join(bin_path, '../'))
-                        return True
-                    else:
-                        return False
+                    return self._check_binary(os.path.join(bin_path, file))
             return False
-        if os.path.isfile(bin_path):
-            output = subprocess.check_output([bin_path,
-                                              '--version']).decode('utf-8')
-            if self.cc_name in output:
-                self.compilers_path = os.path.dirname(bin_path)
-                self.version = re.search(
-                    r'' + re.escape(self.cc_name) + r'.*? (\d*\.\d*\.\d*)', output)
-                return True
-            else:
-                return False
-
-    def _fetch_dependencies(self):
-        pass
+        elif os.path.isfile(bin_path):
+            return self._check_binary(bin_path)
+        else:
+            return False
 
     def get_env(self):
-        return {'cxx': os.path.join(self.compilers_path, self.cxx_name),
-                'cc': os.path.join(self.compilers_path, self.cc_name),
-                'fortran': os.path.join(self.compilers_path, self.fortran_name),
-                'lib': os.path.join(self.compilers_path, '../lib')}
-
-    def validate_flags(self, complete_compiler_flags, complete_link_flags):
-        '''Translate flags that need to be translated from GNU notation to
-           proprietary/exotic notation'''
-        return complete_compiler_flags, complete_link_flags
+        return {
+            'cxx': os.path.join(self.compilers_path, self.cxx_name),
+            'cc': os.path.join(self.compilers_path, self.cc_name),
+            'fortran': os.path.join(self.compilers_path, self.fortran_name),
+            'lib': os.path.realpath(os.path.join(self.compilers_path, '../lib'))
+        }
 
     def get_flags(self):
-        self._fetch_dependencies()
         return self.default_compiler_flags, self.default_link_flags
