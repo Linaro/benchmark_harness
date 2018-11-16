@@ -1,6 +1,6 @@
 path.py==10.3.1
 pathlib2==2.3.0
 PyYAML==3.12
-requests==2.18.4
+requests==2.20.0
 urllib3==1.22
 coloredlogs==10.0
