@@ -27,12 +27,13 @@ class MachineModel(object):
             self.cpu_info = dict()
 
         # Top-up self.cpu_info about CPU and architecture (json output is not common)
-        main_values = Execute().run(['lscpu'])
-        for line in main_values.stdout.split('\n'):
-            if not line:
-                continue
-            key, value = line.split(':')
-            self.cpu_info[key] = value.strip()
+        for source in ['lscpu'], ['cat', '/proc/cpuinfo']:
+            values = Execute().run(source)
+            for line in values.stdout.split('\n'):
+                if not line:
+                    continue
+                key, value = re.split('\s*:\s*', line)
+                self.cpu_info[key] = value.strip()
 
         # Update self.cpu_info structre with standard args (in addition to lscpu)
         self.cpu_info['threads'] = int(self.cpu_info['CPU(s)'])
@@ -74,8 +75,8 @@ class MachineModel(object):
             self.cpu_info = dict()
 
         # Top-up self.cpu_info about memory
-        main_values = Execute().run(['free', '-g'])
-        for line in main_values.stdout.split('\n'):
+        values = Execute().run(['free', '-g'])
+        for line in values.stdout.split('\n'):
             # Format: "Mem|Swap: <total> ..."
             match = re.match("^(\w+):\s+(\d+)\s", line)
             if match:
