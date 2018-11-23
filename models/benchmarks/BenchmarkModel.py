@@ -92,7 +92,9 @@ class BenchmarkModel(object):
             make_cmd.append('CFLAGS=' + all_compiler_flags)
             make_cmd.append('CXXFLAGS=' + all_compiler_flags)
             make_cmd.append('LDFLAGS=' + all_linker_flags)
-            if self.make_flags:
+            if isinstance(self.make_flags, dict) and clone in self.make_flags:
+                make_cmd.extend(self.make_flags[clone].split())
+            elif self.make_flags:
                 make_cmd.extend(self.make_flags.split())
             build_cmd.append(make_cmd)
 
