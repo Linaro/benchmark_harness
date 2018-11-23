@@ -10,6 +10,6 @@ class ModelImplementation(CompilerModel):
         self.version=''
         self.cxx_name='g++'
         self.cc_name='gcc'
-        self.fortran_name='gfortran'
+        self.fc_name='gfortran'
         self.default_compiler_flags='-O3 -ffast-math -funroll-loops'
 

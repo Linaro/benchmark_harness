@@ -10,5 +10,5 @@ class ModelImplementation(CompilerModel):
         self.version=''
         self.cc_name='clang'
         self.cxx_name='clang++'
-        self.fortran_name='flang'
+        self.fc_name='flang'
         self.default_compiler_flags='-O3 -ffast-math -ffp-contract=on'

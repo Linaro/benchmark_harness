@@ -13,7 +13,7 @@ class CompilerModel(object):
         self.version = ''
         self.cxx_name = ''
         self.cc_name = ''
-        self.fortran_name = ''
+        self.fc_name = ''
         self.default_compiler_flags = ''
         self.default_link_flags = ''
 
@@ -67,7 +67,7 @@ class CompilerModel(object):
         return {
             'cxx': os.path.join(self.compilers_path, self.cxx_name),
             'cc': os.path.join(self.compilers_path, self.cc_name),
-            'fortran': os.path.join(self.compilers_path, self.fortran_name),
+            'fc': os.path.join(self.compilers_path, self.fc_name),
             'lib': os.path.realpath(os.path.join(self.compilers_path, '../lib'))
         }
 

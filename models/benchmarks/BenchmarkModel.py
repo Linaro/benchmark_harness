@@ -68,7 +68,7 @@ class BenchmarkModel(object):
         make_cmd.append(self.root_path)
         make_cmd.append('CXX=' + compiler_env['cxx'])
         make_cmd.append('CC=' + compiler_env['cc'])
-        make_cmd.append('FC=' + compiler_env['fortran'])
+        make_cmd.append('FC=' + compiler_env['fc'])
         make_cmd.append('CFLAGS=' + all_compiler_flags)
         make_cmd.append('CXXFLAGS=' + all_compiler_flags)
         make_cmd.append('LDFLAGS=' + all_linker_flags)
