@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import re
 
 class BenchmarkModel(object):
     def __init__(self):
@@ -53,6 +54,15 @@ class BenchmarkModel(object):
             self.size = size
         if threads and threads > 0:
             self.threads = threads
+
+        prepare_cmds = []
+        # If URL is a git repos, clone them
+        is_git = re.search(r'\.git$', self.url)
+        if is_git:
+            prepare_cmds.append(['git', 'clone', self.url, self.root_path])
+        # Else, let models override the behaviour
+        return prepare_cmds
+
 
     def build(self, binary_name, extra_compiler_flags, extra_linker_flags):
         """Builds the benchmark"""

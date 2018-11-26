@@ -44,10 +44,10 @@ class ModelImplementation(BenchmarkModel):
         self.compiler_flags = '-DUSE_MPI=0 -fopenmp'
         self.linker_flags = '-fopenmp'
         self.size = 2
-        self.benchmark_url = 'https://github.com/LLNL/LULESH.git'
+        self.url = 'https://github.com/LLNL/LULESH.git'
 
     def prepare(self, machine, compiler, iterations, size, threads):
-        super().prepare(machine, compiler, iterations, size, threads)
+        prepare_cmds = super().prepare(machine, compiler, iterations, size, threads)
 
         # Lulesh specific flags based on options
         if (self.size >= 3):
@@ -64,9 +64,6 @@ class ModelImplementation(BenchmarkModel):
         if self.threads != self.machine.num_cores:
             os.environ['OMP_NUM_THREADS'] = repr(self.threads)
 
-        # Clone repo
-        prepare_cmds = []
-        prepare_cmds.append(['git', 'clone', self.benchmark_url, self.root_path])
         # Remove this once https://github.com/LLNL/LULESH/pull/2 has been merged
         prepare_cmds.append(['sed', '-i', 's/^lulesh2.0:/$(LULESH_EXEC):/g',
                              os.path.join(self.root_path, 'Makefile')])
