@@ -25,12 +25,23 @@ To install:
 
  1. Clone this repository
  2. Install requirements: python3 -m pip install -r requirements.txt
- 3. Run the harness: python3 benchmark_controller.py -v -i 5 --benchmark_root=. lulesh aarch64 gcc
- 4. Collect the results: cat ./lulesh_gcc__aarch64_/results/*
+ 3. Run the harness: python3 benchmark_controller.py -v --iterations=5 lulesh --size=1
+ 4. Collect the results: cat ./runs/*/lulesh_gcc__x86_64/results/*
 
 The file with .out will have an aggregation of the 5 results into a yaml format.
 
 The file with .err will have an aggregation of the 5 perf results into a yaml format.
+
+## Supported Benchmarks
+
+This is the list of current supported benchmarks:
+ 
+ * [Lulesh](https://github.com/LLNL/LULESH)
+ * [Himeno](http://accc.riken.jp/en/supercom/documents/himenobmt/)
+
+Work-in-progress:
+
+ * [OpenBLAS](https://github.com/xianyi/OpenBLAS)'s [BLAS-Tester](https://github.com/xianyi/BLAS-Tester)
 
 ## Usage
 
