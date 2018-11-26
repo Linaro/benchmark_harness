@@ -46,10 +46,10 @@ class SimpleStats(object):
             stat['average'][key] = statistics.mean(self.data[key])
             stat['deviation'][key] = statistics.stdev(self.data[key])
             # Noise level is a comparable, dimensionless variation measure
+            stat['noise'][key] = 0.0
             if stat['average'][key]:
-                stat['noise'][key] = (stat['deviation'][key]/stat['average'][key])*100
-            else:
-                stat['noise'][key] = 0
+                noise = (stat['deviation'][key]/stat['average'][key])*100
+                stat['noise'][key] = float('%0.2f' % noise)
 
         with open(filename, 'w') as stdout:
             stdout.write(yaml.dump(stat, default_flow_style=False))
