@@ -46,7 +46,7 @@ class CompilerModel(object):
             return False
 
         if self._check_version(path):
-            self.compilers_path = os.path.realpath(path)
+            self.compilers_path = os.path.realpath(os.path.dirname(path))
             self.sysroot_path = os.path.realpath(os.path.join(path, '../'))
             return True
         else:
