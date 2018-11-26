@@ -58,7 +58,7 @@ class BenchmarkController(object):
             (self.args.toolchain.rsplit('/', 1)[-1])[:24]])
 
         # Clean up invalid chars
-        self.binary_name = re.sub("[^a-zA-Z0-9_-]+", "", identity).lower()
+        self.logname = re.sub("[^a-zA-Z0-9_-]+", "", identity).lower()
 
         self.logger.info('Unique name: %s' % identity)
 
@@ -176,7 +176,7 @@ class BenchmarkController(object):
             raise TypeError('result element should be a dict')
 
         # Print both stdout and stderr
-        base_path = self.results_path + '/' + self.binary_name
+        base_path = self.results_path + '/' + self.logname
         with open(base_path + '.out', 'w') as stdout:
             stdout.write(result.stdout())
             stdout.close()
@@ -225,8 +225,7 @@ class BenchmarkController(object):
             compiler_flags += " " + self.args.compiler_flags
         if self.args.linker_flags:
             linker_flags += " " + self.args.linker_flags
-        res = self._run_all(self.benchmark_model.build(self.binary_name,
-                                                       compiler_flags,
+        res = self._run_all(self.benchmark_model.build(compiler_flags,
                                                        linker_flags))
         self._check_results(res, public=True)
 

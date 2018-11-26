@@ -40,11 +40,11 @@ class ModelImplementation(BenchmarkModel):
     def __init__(self):
         super().__init__()
         self.name = 'lulesh'
-        self.executable = 'lulesh2.0'
+        self.executables = ['LULESH/lulesh2.0']
         self.compiler_flags = '-DUSE_MPI=0 -fopenmp'
         self.linker_flags = '-fopenmp'
         self.size = 2
-        self.url = 'https://github.com/LLNL/LULESH.git'
+        self.urls = ['https://github.com/LLNL/LULESH.git']
 
     def prepare(self, machine, compiler, iterations, size, threads):
         prepare_cmds = super().prepare(machine, compiler, iterations, size, threads)
@@ -65,8 +65,8 @@ class ModelImplementation(BenchmarkModel):
             os.environ['OMP_NUM_THREADS'] = repr(self.threads)
 
         # Remove this once https://github.com/LLNL/LULESH/pull/2 has been merged
-        prepare_cmds.append(['sed', '-i', 's/^lulesh2.0:/$(LULESH_EXEC):/g',
-                             os.path.join(self.root_path, 'Makefile')])
+        makefile = os.path.join(self.root_path, self.clones[0], 'Makefile')
+        prepare_cmds.append(['sed', '-i', 's/^lulesh2.0:/$(LULESH_EXEC):/g', makefile])
         return prepare_cmds
 
     def run(self, extra_run_flags):

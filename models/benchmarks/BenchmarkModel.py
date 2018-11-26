@@ -8,7 +8,7 @@ class BenchmarkModel(object):
     def __init__(self):
         # Benchmark name
         self.name = ''
-        self.executable = ''
+        self.executables = []
 
         # Build and execution flags
         self.compiler_flags = ''
@@ -17,8 +17,9 @@ class BenchmarkModel(object):
         self.run_flags = ''
 
         # Benchmark files location
-        self.url = ''
         self.root_path = ''
+        self.urls = []
+        self.clones = []
 
         # Harness options (meta variables) which may be unused
         self.iterations = 1
@@ -57,14 +58,21 @@ class BenchmarkModel(object):
 
         prepare_cmds = []
         # If URL is a git repos, clone them
-        is_git = re.search(r'\.git$', self.url)
-        if is_git:
-            prepare_cmds.append(['git', 'clone', self.url, self.root_path])
-        # Else, let models override the behaviour
+        for clone in self.urls:
+            is_git = re.search(r'\/([^\/]+)\.git$', clone)
+            if is_git:
+                clone_dir = is_git.group(1)
+                self.clones.append(clone_dir)
+                path = os.path.join(self.root_path, clone_dir)
+                prepare_cmds.append(['git', 'clone', clone, path])
+        # Else, models will checkout on current dir (or change the clone)
+        if not self.clones:
+            self.clones = ['.']
+
         return prepare_cmds
 
 
-    def build(self, binary_name, extra_compiler_flags, extra_linker_flags):
+    def build(self, extra_compiler_flags, extra_linker_flags):
         """Builds the benchmark"""
 
         all_compiler_flags = self.compiler_flags + " " + extra_compiler_flags
@@ -72,27 +80,21 @@ class BenchmarkModel(object):
 
         compiler_env = self.compiler.get_env()
         build_cmd = []
-        make_cmd = []
-        make_cmd.append('make')
-        make_cmd.append('-C')
-        make_cmd.append(self.root_path)
-        make_cmd.append('CXX=' + compiler_env['cxx'])
-        make_cmd.append('CC=' + compiler_env['cc'])
-        make_cmd.append('FC=' + compiler_env['fc'])
-        make_cmd.append('CFLAGS=' + all_compiler_flags)
-        make_cmd.append('CXXFLAGS=' + all_compiler_flags)
-        make_cmd.append('LDFLAGS=' + all_linker_flags)
-
-        if self.make_flags:
-            make_cmd.extend(self.make_flags.split())
-
-        build_cmd.append(make_cmd)
-
-        if isinstance(binary_name, str) and binary_name:
-            build_cmd.append(['mv',
-                              os.path.join(self.root_path, self.executable),
-                              os.path.join(self.root_path, binary_name)])
-            self.executable = binary_name
+        for clone in self.clones:
+            path = os.path.join(self.root_path, clone)
+            make_cmd = []
+            make_cmd.append('make')
+            make_cmd.append('-C')
+            make_cmd.append(path)
+            make_cmd.append('CXX=' + compiler_env['cxx'])
+            make_cmd.append('CC=' + compiler_env['cc'])
+            make_cmd.append('FC=' + compiler_env['fc'])
+            make_cmd.append('CFLAGS=' + all_compiler_flags)
+            make_cmd.append('CXXFLAGS=' + all_compiler_flags)
+            make_cmd.append('LDFLAGS=' + all_linker_flags)
+            if self.make_flags:
+                make_cmd.extend(self.make_flags.split())
+            build_cmd.append(make_cmd)
 
         return build_cmd
 
@@ -100,14 +102,15 @@ class BenchmarkModel(object):
         """Runs the benchmarks using the base + extra flags"""
 
         all_run_flags = self.run_flags + " " + extra_run_flags
-        binary_path = os.path.join(self.root_path, self.executable)
 
         run_cmds = []
         for i in range(0, self.iterations):
-            run_cmd = [binary_path]
-            if all_run_flags:
-                run_cmd.extend(all_run_flags.split())
-            run_cmds.append(run_cmd)
+            for exe in self.executables:
+                binary_path = os.path.join(self.root_path, exe)
+                run_cmd = [binary_path]
+                if all_run_flags:
+                    run_cmd.extend(all_run_flags.split())
+                run_cmds.append(run_cmd)
 
         return run_cmds
 

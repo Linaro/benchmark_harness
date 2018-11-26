@@ -39,9 +39,9 @@ class ModelImplementation(BenchmarkModel):
         super().__init__()
 
         self.name = 'himeno'
-        self.executable = 'bmt'
-        self.url = 'http://accc.riken.jp/en/wp-content/uploads/sites/2/2015/07/himenobmt.c.zip'
+        self.executables = ['bmt']
         self.size = 2
+        self.urls = ['http://accc.riken.jp/en/wp-content/uploads/sites/2/2015/07/himenobmt.c.zip']
 
     def prepare(self, machine, compiler, iterations, size, threads):
         if threads and threads != 1:
@@ -69,7 +69,7 @@ class ModelImplementation(BenchmarkModel):
 
         # Download the benchmark, unzip
         prepare_cmds.append(['mkdir', self.root_path])
-        prepare_cmds.append(['wget', '-P', self.root_path, self.url])
+        prepare_cmds.append(['wget', '-P', self.root_path, self.urls[0]])
         prepare_cmds.append(['unzip',
                              os.path.join(self.root_path, 'himenobmt.c.zip'),
                              '-d', self.root_path])
