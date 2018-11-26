@@ -34,19 +34,35 @@ class OutputParser:
             string = string.replace(find, repl)
         return string
 
-    def parse(self, output):
+    def parse(self, cmdline, output):
         """Parses the raw output, returns dictionary"""
         if not isinstance(output, str):
             raise TypeError("Output must be string")
         if not output:
             return dict()
 
-        data = dict()
+        data = {
+            '_name': self._get_name(cmdline)
+        }
         for field, regex in self.fields.items():
             match = re.search(regex, output)
             if match:
                 data[field] = self.sanitise(match.group(1))
         return data
+
+    def _get_name(self, cmdline):
+        """Extracts name from cmdline, taking into consideration perf/taskset"""
+        if not isinstance(cmdline, list):
+            raise TypeError("command line needs to be a list")
+        index = 0
+        if cmdline[index].endswith('taskset'):
+            index += 2
+        if cmdline[index].endswith('perf'):
+            index += 2
+        name = re.search(r'\/([^\/]+)$', cmdline[index])
+        if name:
+            return name.group(1)
+        return ''
 
 class Execute(object):
     """Executes commands, captures output, parse with plugins"""
@@ -81,13 +97,13 @@ class Execute(object):
         # Collect stdout, parse if parser available
         stdout = result.stdout.decode('utf-8')
         if self.outp:
-            stdout = self.outp.parse(stdout)
+            stdout = self.outp.parse(program, stdout)
         result.stdout = stdout
 
         # Collect stderr, parse if parser available
         stderr = result.stderr.decode('utf-8')
         if self.errp:
-            stderr = self.errp.parse(stderr)
+            stderr = self.errp.parse(program, stderr)
         result.stderr = stderr
  
         # Return
