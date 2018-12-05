@@ -18,39 +18,57 @@ class SimpleStats(object):
         if result[0].stderr and not isinstance(result[0].stderr, dict):
             raise TypeError('result element should be a dict')
 
-        self.data = None
-        self.stdout = []
-        self.stderr = []
+        self.stdout = dict()
+        self.stderr = dict()
+        self._cluster_by_name(result)
+
+    def _cluster_by_name(self, result):
         for res in result:
-            self.stdout.append(res.stdout)
-            self.stderr.append(res.stderr)
+            if res.stdout['_name'] != res.stderr['_name']:
+                raise ValueError("Binary names differ in out and err")
+            name = res.stdout['_name']
+            if name not in self.stdout:
+                self.stdout[name] = list()
+            self.stdout[name].append(res.stdout)
+            if name not in self.stderr:
+                self.stderr[name] = list()
+            self.stderr[name].append(res.stderr)
 
     def _append_values(self, results):
         if not isinstance(results, list):
             raise TypeError('results should be a list')
 
+        data = dict()
         for res in results:
             for key in res.keys():
                 value = yaml.load(res[key])
                 if isinstance(value, (int, float)):
-                    if key not in self.data:
-                        self.data[key] = []
-                    self.data[key].append(value)
+                    if key not in data:
+                        data[key] = []
+                    data[key].append(value)
+        return data
 
-    def dump(self, filename):
-        self.data = dict()
-        self._append_values(self.stdout)
-        self._append_values(self.stderr)
+    def _collect_stats(self, data):
         stat = {'average': {}, 'deviation': {}, 'noise': {}}
-        for key in self.data.keys():
-            stat['average'][key] = statistics.mean(self.data[key])
-            stat['deviation'][key] = statistics.stdev(self.data[key])
-            # Noise level is a comparable, dimensionless variation measure
+        for key in data.keys():
+            stat['average'][key] = statistics.mean(data[key])
+            stat['deviation'][key] = statistics.stdev(data[key])
+            # Noise level is the dimensionless coefficient of variation
             stat['noise'][key] = 0.0
             if stat['average'][key]:
                 noise = (stat['deviation'][key]/stat['average'][key])*100
                 stat['noise'][key] = float('%0.2f' % noise)
+        return stat
+
+    def dump(self, filename):
+        stats = { 'out': dict(), 'err': dict() }
+        for name, value in self.stdout.items():
+            data = self._append_values(value)
+            stats['out'][name] = self._collect_stats(data)
+        for name, value in self.stderr.items():
+            data = self._append_values(value)
+            stats['err'][name] = self._collect_stats(data)
 
         with open(filename, 'w') as stdout:
-            stdout.write(yaml.dump(stat, default_flow_style=False))
+            stdout.write(yaml.dump(stats, default_flow_style=False))
             stdout.close()
