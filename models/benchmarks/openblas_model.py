@@ -48,7 +48,6 @@ class ModelImplementation(BenchmarkModel):
         prepare_cmds = super().prepare(machine, compiler, iterations, size, 1)
         # TODO: Choose options form arguments
         blaslib = os.path.join(os.path.realpath(self.root_path), 'OpenBLAS', 'libopenblas.a')
-        print("BLASLIB: " + blaslib)
         arch = "ARM64"
         if self.machine.arch == 'x86_64':
             arch = "X86"
