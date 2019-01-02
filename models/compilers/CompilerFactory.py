@@ -94,6 +94,6 @@ class CompilerFactory(ModelFactory):
                 break
 
         if not compiler_path:
-            raise ImportError('Cannot find compiler. Tried: %' % compilers)
+            raise ImportError('Cannot find compiler. Tried: ' + repr(compilers))
 
         return self._find_model(compiler_path)

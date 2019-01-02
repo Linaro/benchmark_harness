@@ -19,5 +19,7 @@ class BenchmarkFactory(ModelFactory):
     def getBenchmark(self):
         """Loads benchmark model and returns"""
         model = self._load_model(self.name + '_model.py')
+        if not model:
+            raise ImportError("Can't find model for benchmark " + self.name)
         model.root_path = self.extractpath
         return model

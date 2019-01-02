@@ -29,5 +29,7 @@ class MachineFactory(ModelFactory):
 
     def getMachine(self):
         """Loads machine model and returns"""
-
-        return self._load_model(self.name + '_model.py')
+        model = self._load_model(self.name + '_model.py')
+        if not model:
+            raise ImportError("Can't find model for machine " + self.name)
+        return model
