@@ -42,6 +42,8 @@ class LinuxPerf(Execute):
 
         super(LinuxPerf, self).__init__(plugin, LinuxPerfParser(), logger)
 
+        self.cap_file = '/proc/sys/kernel/perf_event_paranoid'
+        self.cap_max = 2
         # list of events
         self.events = list()
         # additional stat arguments
@@ -56,17 +58,20 @@ class LinuxPerf(Execute):
     def _validate(self, perf):
         # Verify that perf is actually installed
         self.perf = perf
-        if self.perf is None:
+        if not self.perf:
             self.perf = shutil.which('perf')
         else:
             self.perf = os.path.abspath(perf)
-        if not Path(self.perf).exists():
-            raise RuntimeError("Perf '" + self.perf + "' not available")
+        if not self.perf or not Path(self.perf).exists():
+            raise RuntimeError("Perf not available")
 
         # Check that you have permissions to do anything
-        CAP_SYS_ADMIN = Path('/proc/sys/kernel/perf_event_paranoid').read_text()
-        if int(CAP_SYS_ADMIN) >= 3:
-            raise RuntimeError("Can't run perf with CAP_SYS_ADMIN higher than 2")
+        cap = int(Path(self.cap_file).read_text())
+        if cap > self.cap_max:
+            msg = "Current CAP_SYS_ADMIN is " + str(cap) + ", but no more than " + \
+                  str(self.cap_max) + " is required to run perf correctly. " + \
+                  "Please, set the correct capability in " + self.cap_file
+            raise RuntimeError(msg)
 
     def setStat(self, repeat=1, events=None):
         """Set extra stat arguments"""
