@@ -25,12 +25,15 @@ To install:
 
  1. Clone this repository
  2. Install requirements: python3 -m pip install -r requirements.txt
- 3. Run the harness: python3 benchmark_controller.py -v --iterations=5 lulesh --size=1
- 4. Collect the results: cat ./runs/*/lulesh_gcc__x86_64/results/*
+ 3. Install Linux Perf (Ubuntu: `linux-tools`, CentOS, Arch: `perf`)
+ 4. Run the harness: python3 benchmark_controller.py -v --iterations=5 lulesh --size=1
+ 5. Collect the results: cat ./runs/*/lulesh_gcc__x86_64/results/*
 
 The file with .out will have an aggregation of the 5 results into a yaml format.
 
 The file with .err will have an aggregation of the 5 perf results into a yaml format.
+
+Other benchmarks may need additional dependencies (for ex. Himeno needs `lhaza`).
 
 ## Supported Benchmarks
 
